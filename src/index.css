@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* BeMinimalist.co Primary Typography: Proxima Nova + DM Sans */
+@font-face {
+  font-family: 'Proxima Nova';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('https://cdn.shopify.com/s/files/1/0410/9608/5665/files/ProximaNovaA-Regular.ttf?v=1711045552') format('truetype');
+}
+
+@font-face {
+  font-family: 'Proxima Nova';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('https://cdn.shopify.com/s/files/1/0410/9608/5665/files/ProximaNovaA-Bold.ttf?v=1711044443') format('truetype');
+}
+
+:root {
+  font-family: 'Proxima Nova', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.012em;
+}
+
+/* Day / Light Theme (Clinical Minimalist) */
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  background-image: 
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.03) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Night / Dark Theme */
+.dark body {
+  background-color: #07090e;
+  color: #f8fafc;
+  background-image: 
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.04) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Proxima Nova', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.025em;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+code, pre, .font-mono {
+  font-family: 'SF Mono', 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+  letter-spacing: -0.01em;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e2638;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #2d3852;
+}
+
+/* Adaptive Glass & Glow Classes */
+
+/* 1. Glass Panel (Header, Search Strip) */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.dark .glass-panel {
+  background: linear-gradient(180deg, rgba(16, 21, 34, 0.75) 0%, rgba(11, 14, 23, 0.85) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+
+/* 2. Glass Card (Bug cards, Stat cards) */
+.glass-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass-card {
+  background: linear-gradient(180deg, rgba(21, 28, 44, 0.8) 0%, rgba(16, 21, 34, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+.dark .glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* 3. Glass Inset (Code blocks, verbatim quotes) */
+.glass-inset {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.dark .glass-inset {
+  background: #05070b;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+}
