@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, ExternalLink, Copy, Check, Star, AlertCircle, 
-  Terminal, MessageSquare, ShieldAlert, Cpu, Sparkles, Send, CheckCircle2
+  X, ExternalLink, Copy, Check, Star, 
+  Terminal, MessageSquare, Cpu, Send, CheckCircle2
 } from 'lucide-react';
 
-export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allBugs, onMerge }) {
+export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allBugs }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('reviews'); // 'reviews' | 'prompt' | 'reply'
@@ -12,8 +12,6 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
   const [copied, setCopied] = useState(false);
   const [storeReply, setStoreReply] = useState('');
   const [copiedReply, setCopiedReply] = useState(false);
-  
-  // Close-the-loop state
   const [replyTone, setReplyTone] = useState('friendly'); // 'friendly' | 'formal' | 'quick'
   const [dispatchedMap, setDispatchedMap] = useState({});
 
@@ -23,7 +21,7 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
     fetch(`/api/bugs/${bug.id}/reviews`)
       .then(res => res.json())
       .then(data => {
-        setReviews(data);
+        setReviews(data || []);
         setLoading(false);
       })
       .catch(err => {
@@ -47,19 +45,19 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
     let text = "";
     if (isResolved) {
       if (tone === 'friendly') {
-        text = `Hi there! Thank you so much for reporting this issue. Our team investigated and resolved the bug ("${bugTitle}") in our latest release. Please update your app and let us know if everything is running smoothly! If you love the fix, we'd be thrilled if you could consider updating your review. ⭐`;
+        text = `Hi there! Thank you for reporting this issue. Our team resolved "${bugTitle}" in our latest release. Please update your app and let us know if everything is running smoothly.`;
       } else if (tone === 'formal') {
-        text = `Dear user, thank you for your feedback. We are pleased to inform you that the reported issue regarding "${bugTitle}" has been resolved and deployed in the latest version. Please update your installation at your earliest convenience.`;
+        text = `Thank you for your feedback. The reported issue regarding "${bugTitle}" has been resolved and deployed in the latest release.`;
       } else {
-        text = `Update: This bug ("${bugTitle}") has been fixed and shipped in our latest patch! Please update and check it out.`;
+        text = `Update: "${bugTitle}" has been fixed in the latest release patch.`;
       }
     } else {
       if (tone === 'friendly') {
-        text = `Hi! Thanks for reporting this. We've reproduced the issue ("${bugTitle}") and our developers are actively working on a fix right now. We expect to push an update shortly!`;
+        text = `Hi! Thanks for reporting this. We've reproduced "${bugTitle}" and are actively working on a fix now.`;
       } else if (tone === 'formal') {
-        text = `Thank you for contacting us. Your report regarding "${bugTitle}" has been logged with our engineering team and is currently under active investigation.`;
+        text = `Thank you for contacting us. Your report regarding "${bugTitle}" is currently under active investigation by our engineering team.`;
       } else {
-        text = `We are investigating "${bugTitle}" now. A patch is underway.`;
+        text = `We are investigating "${bugTitle}". A patch is underway.`;
       }
     }
     setStoreReply(text);
@@ -88,199 +86,196 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
     }
   };
 
-  const severityColors = {
-    CRITICAL: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-priority-red/15 dark:text-priority-red dark:border-priority-red/30',
-    HIGH: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-priority-amber/15 dark:text-priority-amber dark:border-priority-amber/30',
-    MEDIUM: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-priority-blue/15 dark:text-priority-blue dark:border-priority-blue/30',
-    LOW: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/15 dark:text-slate-400 dark:border-slate-500/30'
+  const severityLabels = {
+    CRITICAL: { label: 'Critical', color: 'text-semantic-negative-light dark:text-semantic-negative-dark bg-red-500/10' },
+    HIGH: { label: 'High', color: 'text-semantic-warning-light dark:text-semantic-warning-dark bg-amber-500/10' },
+    MEDIUM: { label: 'Medium', color: 'text-ink-secondary-light dark:text-ink-secondary-dark bg-surface-raised-light dark:bg-surface-raised-dark' },
+    LOW: { label: 'Low', color: 'text-ink-muted-light dark:text-ink-muted-dark bg-surface-raised-light dark:bg-surface-raised-dark' }
   };
 
   const isUser = bug.originType === 'USER_REPORTED';
+  const sev = severityLabels[bug.severity] || severityLabels.MEDIUM;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 dark:bg-black/75 backdrop-blur-md flex justify-end animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end">
       <div 
-        className="w-full max-w-2xl bg-white dark:bg-sidebar border-l border-slate-200 dark:border-surface-border shadow-2xl flex flex-col h-full transform transition-transform"
+        className="w-full max-w-xl bg-sidebar-light dark:bg-sidebar-dark border-l border-surface-border-light dark:border-surface-border-dark flex flex-col h-full transition-colors duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Drawer Header */}
-        <div className="p-6 border-b border-slate-200 dark:border-surface-border flex items-start justify-between bg-white/95 dark:bg-sidebar/95 sticky top-0 z-10 backdrop-blur">
-          <div className="space-y-2.5 max-w-[85%]">
+        <div className="p-5 border-b border-surface-border-light dark:border-surface-border-dark flex items-start justify-between">
+          <div className="space-y-2 max-w-[85%]">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-surface-inset px-2 py-0.5 rounded border border-slate-200 dark:border-white/5">
+              <span className="font-mono text-xs text-ink-muted-light dark:text-ink-muted-dark tabular">
                 {isUser ? `BL-USR-${bug.id.slice(-3)}` : `BL-INT-${bug.id.slice(-3)}`}
               </span>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${severityColors[bug.severity] || severityColors.MEDIUM}`}>
-                {bug.severity}
+              <span className={`px-2 py-0.5 rounded text-[11px] font-mono ${sev.color}`}>
+                {sev.label}
               </span>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                isUser ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-accent-mint/10 dark:text-accent-mint dark:border-accent-mint/20' : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-priority-blue/10 dark:text-priority-blue dark:border-priority-blue/20'
-              }`}>
-                {isUser ? '👥 User Reported' : '🛠️ My Bug'}
+              <span className="px-2 py-0.5 rounded text-[11px] font-mono surface-raised text-ink-secondary-light dark:text-ink-secondary-dark">
+                {isUser ? 'Customer report' : 'Internal bug'}
               </span>
               {bug.reportCount && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30">
-                  🔥 {bug.reportCount} user report{bug.reportCount > 1 ? 's' : ''}
-                </span>
-              )}
-              {bug.affectedVersions && bug.affectedVersions.length > 0 && (
-                <span className="px-2 py-0.5 rounded text-xs font-mono bg-slate-100 dark:bg-surface-inset text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5">
-                  {bug.affectedVersions.join(', ')}
+                <span className="text-[11px] font-mono tabular text-ink-muted-light dark:text-ink-muted-dark">
+                  {bug.reportCount} reports
                 </span>
               )}
             </div>
 
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-snug">
+            <h2 className="text-base font-medium text-ink-primary-light dark:text-ink-primary-dark leading-snug">
               {bug.title}
             </h2>
 
-            {/* Quick Status Bar */}
-            <div className="flex items-center gap-2 pt-1 font-mono">
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Status:</span>
-              {['OPEN', 'IN_PROGRESS', 'RESOLVED'].map(st => (
-                <button
-                  key={st}
-                  onClick={() => onUpdateStatus(bug.id, st)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                    bug.status === st 
-                      ? (st === 'RESOLVED' ? 'bg-emerald-600 text-white font-bold' : st === 'IN_PROGRESS' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-blue-600 text-white font-bold')
-                      : 'bg-slate-100 dark:bg-surface-elevated text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-surface-hover hover:text-slate-950 dark:hover:text-white border border-slate-200 dark:border-white/5'
-                  }`}
-                >
-                  {st === 'RESOLVED' ? '✓ RESOLVED' : st}
-                </button>
-              ))}
+            {/* Status Control */}
+            <div className="flex items-center gap-1.5 pt-1">
+              <span className="text-xs text-ink-muted-light dark:text-ink-muted-dark">Status:</span>
+              <div className="flex items-center gap-1 bg-surface-inset-light dark:bg-surface-inset-dark p-0.5 rounded-lg border border-surface-border-light dark:border-surface-border-dark">
+                {['OPEN', 'IN_PROGRESS', 'RESOLVED'].map(st => (
+                  <button
+                    key={st}
+                    onClick={() => onUpdateStatus(bug.id, st)}
+                    className={`h-6 px-2 text-xs rounded transition-colors duration-140 ${
+                      bug.status === st 
+                        ? 'bg-canvas-light dark:bg-surface-raised-dark text-ink-primary-light dark:text-ink-primary-dark font-medium shadow-xs'
+                        : 'text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
+                    }`}
+                  >
+                    {st === 'RESOLVED' ? 'Resolved' : st === 'IN_PROGRESS' ? 'In progress' : 'Open'}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <button 
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-surface-elevated transition"
+            className="w-7 h-7 flex items-center justify-center text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark rounded-md hover:bg-surface-raised-light dark:hover:bg-surface-raised-dark transition-colors"
           >
-            <X size={20} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-slate-200 dark:border-surface-border bg-slate-50/70 dark:bg-surface-inset/60 px-6 font-mono">
+        <div className="flex border-b border-surface-border-light dark:border-surface-border-dark px-5">
           <button
             onClick={() => setActiveTab('reviews')}
-            className={`py-3 px-4 text-xs font-semibold flex items-center gap-2 border-b-2 transition ${
+            className={`h-9 px-3 text-xs font-medium flex items-center gap-1.5 border-b-2 transition-colors ${
               activeTab === 'reviews'
-                ? 'border-emerald-600 text-emerald-700 dark:border-accent-mint dark:text-accent-mint font-bold'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'border-ink-primary-light dark:border-ink-primary-dark text-ink-primary-light dark:text-ink-primary-dark'
+                : 'border-transparent text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
             }`}
           >
-            <MessageSquare size={14} />
-            Verbatim Reviews ({reviews.length})
+            <MessageSquare size={13} strokeWidth={1.5} />
+            <span>Citations ({reviews.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('prompt')}
-            className={`py-3 px-4 text-xs font-semibold flex items-center gap-2 border-b-2 transition ${
+            className={`h-9 px-3 text-xs font-medium flex items-center gap-1.5 border-b-2 transition-colors ${
               activeTab === 'prompt'
-                ? 'border-emerald-600 text-emerald-700 dark:border-accent-mint dark:text-accent-mint font-bold'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'border-ink-primary-light dark:border-ink-primary-dark text-ink-primary-light dark:text-ink-primary-dark'
+                : 'border-transparent text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
             }`}
           >
-            <Terminal size={14} />
-            Cursor / Claude Prompt
+            <Terminal size={13} strokeWidth={1.5} />
+            <span>Developer prompt</span>
           </button>
           <button
             onClick={() => setActiveTab('reply')}
-            className={`py-3 px-4 text-xs font-semibold flex items-center gap-2 border-b-2 transition ${
+            className={`h-9 px-3 text-xs font-medium flex items-center gap-1.5 border-b-2 transition-colors ${
               activeTab === 'reply'
-                ? 'border-emerald-600 text-emerald-700 dark:border-accent-mint dark:text-accent-mint font-bold'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'border-ink-primary-light dark:border-ink-primary-dark text-ink-primary-light dark:text-ink-primary-dark'
+                : 'border-transparent text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
             }`}
           >
-            <Sparkles size={14} />
-            Close-the-Loop Release Reply
+            <Send size={13} strokeWidth={1.5} />
+            <span>Release reply</span>
           </button>
         </div>
 
         {/* Drawer Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
           
-          {/* TAB 1: VERBATIM PROOFS */}
+          {/* TAB 1: CITATIONS */}
           {activeTab === 'reviews' && (
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/5 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">
-                  <Cpu size={14} className="text-emerald-600 dark:text-accent-mint" />
-                  AI Technical Diagnosis
+              <div className="p-3.5 rounded-lg surface-inset space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
+                  <Cpu size={13} strokeWidth={1.5} />
+                  <span>Technical diagnosis</span>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-mono">
+                <p className="text-xs text-ink-secondary-light dark:text-ink-secondary-dark leading-relaxed font-mono">
                   {bug.technicalSummary}
                 </p>
                 {bug.devLogs && (
-                  <div className="pt-2 border-t border-slate-200 dark:border-white/5">
-                    <span className="text-[10px] font-mono text-emerald-600 dark:text-accent-mint font-bold block mb-1">
-                      Attached Client DevLogs:
+                  <div className="pt-2 border-t border-surface-border-light dark:border-surface-border-dark">
+                    <span className="text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark block mb-1">
+                      Attached devlogs:
                     </span>
-                    <pre className="p-2.5 rounded bg-slate-950 text-emerald-400 text-[10px] font-mono overflow-x-auto whitespace-pre-wrap">
+                    <pre className="p-2 rounded bg-canvas-dark text-ink-muted-dark text-[10px] font-mono overflow-x-auto whitespace-pre-wrap">
                       {bug.devLogs}
                     </pre>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
-                  Raw Customer Evidence ({reviews.length} Sources)
+              <div className="space-y-2.5">
+                <h3 className="text-xs font-medium text-ink-muted-light dark:text-ink-muted-dark">
+                  Customer citations ({reviews.length})
                 </h3>
 
                 {loading ? (
-                  <div className="py-12 text-center text-slate-400 text-xs font-mono">Loading verbatim citations...</div>
+                  <div className="py-12 text-center text-ink-muted-light dark:text-ink-muted-dark text-xs font-mono">
+                    Loading citations...
+                  </div>
                 ) : reviews.length === 0 ? (
-                  <div className="p-6 text-center text-slate-500 text-xs glass-card rounded-2xl">
-                    No verbatim reviews directly attached to this bug ID yet.
+                  <div className="p-6 text-center text-ink-muted-light dark:text-ink-muted-dark text-xs surface-card rounded-lg">
+                    No citations directly attached to this issue.
                   </div>
                 ) : (
                   reviews.map((rev) => (
                     <div 
                       key={rev.id} 
-                      className="p-4 rounded-2xl glass-card space-y-3 border border-slate-200 dark:border-surface-border bg-white dark:bg-[#101522]"
+                      className="p-3.5 rounded-lg surface-card space-y-2.5"
                     >
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 dark:text-white">{rev.authorName}</span>
-                          <span className="text-slate-400">•</span>
-                          <span className="text-slate-500 text-[11px] font-mono">{rev.platform}</span>
+                          <span className="font-medium text-ink-primary-light dark:text-ink-primary-dark">{rev.authorName}</span>
+                          <span className="text-ink-muted-light dark:text-ink-muted-dark">·</span>
+                          <span className="text-ink-muted-light dark:text-ink-muted-dark text-[11px] font-mono">{rev.platform}</span>
                           {rev.appVersion && (
-                            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-surface-inset text-slate-600 dark:text-slate-400 font-mono text-[10px]">
+                            <span className="text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark">
                               {rev.appVersion}
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex items-center gap-0.5 text-amber-500 dark:text-accent-gold">
-                            {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                size={12} 
-                                className={i < (rev.rating || 1) ? "fill-amber-500 dark:fill-accent-gold text-amber-500 dark:text-accent-gold" : "text-slate-300 dark:text-slate-700"}
-                              />
-                            ))}
-                          </div>
+                        <div className="flex items-center gap-0.5 text-amber-500">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              size={10} 
+                              strokeWidth={1.5}
+                              className={i < (rev.rating || 1) ? "fill-amber-500" : "text-surface-border-light dark:text-surface-border-dark"}
+                            />
+                          ))}
                         </div>
                       </div>
 
-                      <blockquote className="text-sm text-slate-800 dark:text-slate-200 italic border-l-2 border-emerald-500 dark:border-accent-mint/70 pl-3.5 leading-relaxed font-sans glass-inset p-3 rounded-r-xl">
+                      <blockquote className="text-xs text-ink-secondary-light dark:text-ink-secondary-dark italic border-l-2 border-accent/60 pl-3 leading-relaxed surface-inset p-2.5 rounded-r">
                         "{rev.reviewText}"
                       </blockquote>
 
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                        <span className="font-mono">{rev.deviceInfo || 'Standard Client Device'}</span>
+                      <div className="flex items-center justify-between text-[11px] text-ink-muted-light dark:text-ink-muted-dark pt-0.5 font-mono text-[10px]">
+                        <span>{rev.deviceInfo || 'Standard client'}</span>
                         {rev.storeUrl && (
                           <a 
                             href={rev.storeUrl} 
                             target="_blank" 
                             rel="noreferrer"
-                            className="flex items-center gap-1 text-emerald-600 dark:text-accent-mint hover:underline font-medium"
+                            className="flex items-center gap-1 hover:text-ink-primary-light dark:hover:text-ink-primary-dark transition-colors"
                           >
-                            <span>Verify on Store</span>
-                            <ExternalLink size={12} />
+                            <span>Verify source</span>
+                            <ExternalLink size={10} strokeWidth={1.5} />
                           </a>
                         )}
                       </div>
@@ -291,63 +286,53 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
             </div>
           )}
 
-          {/* TAB 2: CURSOR / CLAUDE PROMPT */}
+          {/* TAB 2: PROMPT GENERATOR */}
           {activeTab === 'prompt' && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Developer Prompt Generator</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Copy directly into Cursor Composer or Claude Code</p>
+                  <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">Prompt generator</h3>
+                  <p className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">Copy directly into Cursor Composer or Claude Code</p>
                 </div>
                 <button
                   onClick={handleCopyPrompt}
-                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-gradient-to-r dark:from-accent-mint dark:to-emerald-600 dark:hover:from-emerald-500 dark:hover:to-emerald-600 dark:text-slate-950 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
+                  className="h-7 px-2.5 bg-ink-primary-light dark:bg-ink-primary-dark text-canvas-light dark:text-canvas-dark rounded-md text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90"
                 >
-                  {copied ? <Check size={14} /> : <Copy size={14} />}
-                  {copied ? "Copied!" : "Copy Prompt"}
+                  {copied ? <Check size={12} strokeWidth={2} /> : <Copy size={12} strokeWidth={1.5} />}
+                  <span>{copied ? "Copied" : "Copy prompt"}</span>
                 </button>
               </div>
 
-              <pre className="p-4 bg-slate-100 dark:bg-surface-inset border border-slate-200 dark:border-white/5 rounded-2xl text-xs text-slate-900 dark:text-accent-mint font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[400px]">
+              <pre className="p-3.5 bg-canvas-dark text-ink-muted-dark border border-surface-border-dark rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[420px]">
                 {promptText || "Generating prompt..."}
               </pre>
             </div>
           )}
 
-          {/* TAB 3: CLOSE-THE-LOOP RELEASE REPLY DISPATCHER */}
+          {/* TAB 3: RELEASE REPLY */}
           {activeTab === 'reply' && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               
-              {/* Release notification header */}
-              <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${
-                bug.status === 'RESOLVED' 
-                  ? 'bg-emerald-50 border-emerald-300 dark:bg-accent-mint/10 dark:border-accent-mint/30' 
-                  : 'bg-amber-50 border-amber-300 dark:bg-amber-500/10 dark:border-amber-500/30'
-              }`}>
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 size={18} className={bug.status === 'RESOLVED' ? "text-emerald-600 dark:text-accent-mint" : "text-amber-600 dark:text-amber-400"} />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                      {bug.status === 'RESOLVED' ? "Issue Marked Resolved: Ready to Win Back Ratings" : "Issue Under Active Investigation"}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {bug.status === 'RESOLVED' 
-                        ? "Responding to past 1-star reviews after shipping a fix recovers up to 40% of reviews into 5 stars."
-                        : "Notify reviewers that an engineer is actively fixing their complaint."}
-                    </p>
-                  </div>
+              <div className="p-3 rounded-lg surface-inset flex items-center justify-between gap-3 text-xs">
+                <div className="space-y-0.5">
+                  <h4 className="font-medium text-ink-primary-light dark:text-ink-primary-dark">
+                    {bug.status === 'RESOLVED' ? "Issue resolved" : "Under investigation"}
+                  </h4>
+                  <p className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">
+                    Reply template to close the loop with reviewers on app stores
+                  </p>
                 </div>
 
-                {/* Tone Selector */}
-                <div className="flex items-center gap-1 bg-white dark:bg-surface-inset p-1 rounded-lg border border-slate-200 dark:border-white/5 text-[11px] font-mono">
+                {/* Tone switch */}
+                <div className="flex items-center gap-0.5 bg-canvas-light dark:bg-surface-raised-dark p-0.5 rounded-md border border-surface-border-light dark:border-surface-border-dark text-[11px]">
                   {['friendly', 'formal', 'quick'].map(t => (
                     <button
                       key={t}
                       onClick={() => setReplyTone(t)}
-                      className={`px-2 py-0.5 rounded capitalize font-medium transition ${
+                      className={`h-5 px-1.5 rounded capitalize transition-colors ${
                         replyTone === t 
-                          ? 'bg-emerald-600 text-white dark:bg-accent-mint dark:text-slate-950 font-bold' 
-                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                          ? 'surface-raised font-medium text-ink-primary-light dark:text-ink-primary-dark' 
+                          : 'text-ink-muted-light dark:text-ink-muted-dark'
                       }`}
                     >
                       {t}
@@ -356,32 +341,32 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
                 </div>
               </div>
 
-              {/* Master Reply Template */}
-              <div className="p-4 glass-card rounded-2xl space-y-3">
+              {/* Master Reply */}
+              <div className="p-3.5 surface-card rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">
-                    Master Reply Template ({replyTone}):
+                  <span className="text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
+                    Reply draft
                   </span>
                   <button
                     onClick={handleCopyReply}
-                    className="px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-accent-mint hover:underline flex items-center gap-1"
+                    className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark flex items-center gap-1"
                   >
-                    {copiedReply ? <Check size={12} /> : <Copy size={12} />}
-                    {copiedReply ? "Copied!" : "Copy Master"}
+                    {copiedReply ? <Check size={11} /> : <Copy size={11} />}
+                    <span>{copiedReply ? "Copied" : "Copy draft"}</span>
                   </button>
                 </div>
                 <textarea
                   value={storeReply}
                   onChange={(e) => setStoreReply(e.target.value)}
                   rows={4}
-                  className="w-full bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-slate-200 font-sans focus:outline-none focus:border-emerald-500 dark:focus:border-accent-mint transition leading-relaxed"
+                  className="w-full bg-surface-inset-light dark:bg-surface-inset-dark border border-surface-border-light dark:border-surface-border-dark rounded-md p-2.5 text-xs text-ink-primary-light dark:text-ink-primary-dark focus:outline-none leading-relaxed resize-none"
                 />
               </div>
 
-              {/* Per-Reviewer 1-Click Dispatch List */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
-                  1-Click Dispatch to Reviewers ({reviews.length})
+              {/* Per-Reviewer Dispatch */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-ink-muted-light dark:text-ink-muted-dark">
+                  Dispatch to reviewers ({reviews.length})
                 </h4>
 
                 {reviews.map(rev => {
@@ -389,33 +374,32 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
                   return (
                     <div 
                       key={rev.id} 
-                      className="p-3.5 rounded-xl border border-slate-200 dark:border-surface-border bg-slate-50/50 dark:bg-surface-inset/60 flex items-center justify-between gap-3 text-xs"
+                      className="p-3 rounded-lg surface-raised flex items-center justify-between gap-3 text-xs"
                     >
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 dark:text-white">{rev.authorName}</span>
-                          <span className="text-amber-500 font-mono text-[11px]">{rev.rating}★</span>
-                          <span className="text-slate-400">•</span>
-                          <span className="text-slate-500 font-mono text-[11px]">{rev.platform}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-ink-primary-light dark:text-ink-primary-dark">{rev.authorName}</span>
+                          <span className="text-ink-muted-light dark:text-ink-muted-dark font-mono text-[10px] tabular">{rev.rating}★</span>
+                          <span className="text-ink-muted-light dark:text-ink-muted-dark font-mono text-[10px]">{rev.platform}</span>
                         </div>
-                        <p className="text-[11px] text-slate-500 truncate italic mt-0.5 max-w-md">
+                        <p className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark truncate italic mt-0.5 max-w-sm">
                           "{rev.reviewText}"
                         </p>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
                         {isDispatched && (
-                          <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-accent-mint flex items-center gap-1 bg-emerald-50 dark:bg-accent-mint/10 px-2 py-0.5 rounded border border-emerald-200 dark:border-accent-mint/20">
-                            ✓ Copied & Opened
+                          <span className="text-[10px] font-mono text-accent">
+                            Dispatched
                           </span>
                         )}
                         <button
                           onClick={() => handleDispatchForReview(rev)}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-accent-mint dark:hover:bg-emerald-400 dark:text-slate-950 flex items-center gap-1.5 shadow-sm transition"
-                          title="Copy personalized reply and open store review console"
+                          className="h-6 px-2.5 rounded surface-card hover:bg-canvas-light dark:hover:bg-canvas-dark text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark flex items-center gap-1 transition-colors"
+                          title="Copy reply and open store console"
                         >
-                          <Send size={12} />
-                          <span>Dispatch Reply</span>
+                          <Send size={11} strokeWidth={1.5} />
+                          <span>Dispatch</span>
                         </button>
                       </div>
                     </div>
@@ -429,8 +413,8 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
         </div>
 
         {/* Drawer Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-surface-border bg-slate-50 dark:bg-sidebar/90 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
-          <span>Bug ID: <code className="text-emerald-600 dark:text-accent-mint font-bold">{bug.id}</code></span>
+        <div className="p-3.5 border-t border-surface-border-light dark:border-surface-border-dark flex items-center justify-between text-[11px] text-ink-muted-light dark:text-ink-muted-dark font-mono tabular">
+          <span>ID: {bug.id}</span>
           <span>Created: {new Date(bug.createdAt).toLocaleDateString()}</span>
         </div>
       </div>

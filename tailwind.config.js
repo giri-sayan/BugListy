@@ -8,44 +8,86 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Proxima Nova"', '"DM Sans"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
-        mono: ['"SF Mono"', '"JetBrains Mono"', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        sans: ['"DM Sans"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       colors: {
         canvas: {
-          light: '#f8fafc',
-          dark: '#07090e',
-          DEFAULT: '#07090e'
+          light: '#fafafa',
+          dark: '#141415',
+          DEFAULT: '#141415'
         },
         sidebar: {
           light: '#ffffff',
-          dark: '#0b0e17',
-          DEFAULT: '#0b0e17'
+          dark: '#0f0f10',
+          DEFAULT: '#0f0f10'
         },
         surface: {
-          light: '#ffffff',
-          DEFAULT: '#101522',
-          elevated: '#151c2c',
-          hover: '#1a2336',
-          inset: '#05070b',
-          border: '#1e2638'
+          card: {
+            light: '#ffffff',
+            dark: '#19191b',
+            DEFAULT: '#19191b'
+          },
+          raised: {
+            light: '#f4f4f5',
+            dark: '#232325',
+            DEFAULT: '#232325'
+          },
+          inset: {
+            light: '#f1f1f2',
+            dark: '#111113',
+            DEFAULT: '#111113'
+          },
+          border: {
+            light: 'rgba(23, 23, 23, 0.08)',
+            dark: 'rgba(237, 237, 237, 0.08)',
+            DEFAULT: 'rgba(237, 237, 237, 0.08)'
+          }
         },
-        priority: {
-          blue: '#2684FF',
-          red: '#FF5630',
-          amber: '#FFAB00',
-          green: '#36B37E',
-          purple: '#6554C0'
+        ink: {
+          primary: {
+            light: '#171717',
+            dark: '#ededed',
+            DEFAULT: '#ededed'
+          },
+          secondary: {
+            light: '#525252',
+            dark: '#a1a1a6',
+            DEFAULT: '#a1a1a6'
+          },
+          muted: {
+            light: '#737373',
+            dark: '#85858b',
+            DEFAULT: '#85858b'
+          }
         },
         accent: {
-          mint: '#10B981',
-          violet: '#6366F1',
-          cyan: '#06B6D4',
-          gold: '#FFB800',
-          chrome: '#38BDF8',
-          apple: '#818CF8',
-          play: '#34D399'
+          DEFAULT: '#10b981',
+          hover: '#059669',
+          subtle: 'rgba(16, 185, 129, 0.12)',
+          dark: '#059669'
+        },
+        semantic: {
+          positive: {
+            light: '#16a34a',
+            dark: '#4cc38a'
+          },
+          negative: {
+            light: '#dc2626',
+            dark: '#e5484d'
+          },
+          warning: {
+            light: '#d97706',
+            dark: '#f59e0b'
+          },
+          info: {
+            light: '#2563eb',
+            dark: '#3b82f6'
+          }
         }
+      },
+      transitionTimingFunction: {
+        'unslop': 'cubic-bezier(0.22, 1, 0.36, 1)',
       }
     },
   },

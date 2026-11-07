@@ -2,66 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BeMinimalist.co Primary Typography: Proxima Nova + DM Sans */
-@font-face {
-  font-family: 'Proxima Nova';
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  src: url('https://cdn.shopify.com/s/files/1/0410/9608/5665/files/ProximaNovaA-Regular.ttf?v=1711045552') format('truetype');
-}
-
-@font-face {
-  font-family: 'Proxima Nova';
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-  src: url('https://cdn.shopify.com/s/files/1/0410/9608/5665/files/ProximaNovaA-Bold.ttf?v=1711044443') format('truetype');
-}
-
 :root {
-  font-family: 'Proxima Nova', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.012em;
+  letter-spacing: 0;
 }
 
-/* Day / Light Theme (Clinical Minimalist) */
+/* Light Theme - Graphite Ramp */
 body {
-  background-color: #f8fafc;
-  color: #0f172a;
-  background-image: 
-    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.03) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
-  background-attachment: fixed;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  background-color: #fafafa;
+  color: #171717;
+  transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Night / Dark Theme */
+/* Dark Theme - Graphite Ramp */
 .dark body {
-  background-color: #07090e;
-  color: #f8fafc;
-  background-image: 
-    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.04) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+  background-color: #141415;
+  color: #ededed;
 }
 
 h1, h2, h3, h4, .font-heading {
-  font-family: 'Proxima Nova', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  letter-spacing: -0.025em;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-}
-
-code, pre, .font-mono {
-  font-family: 'SF Mono', 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: -0.01em;
+  font-weight: 500;
 }
 
-/* Custom scrollbars */
+code, pre, .font-mono, .tabular {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Quiet neutral scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -69,72 +45,86 @@ code, pre, .font-mono {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
+  background: rgba(23, 23, 23, 0.12);
+  border-radius: 4px;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #1e2638;
+  background: rgba(237, 237, 237, 0.12);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgba(23, 23, 23, 0.2);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #2d3852;
+  background: rgba(237, 237, 237, 0.2);
 }
 
-/* Adaptive Glass & Glow Classes */
+/* Clean surfaces (replacing glassmorphism & glows) */
 
-/* 1. Glass Panel (Header, Search Strip) */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+/* 1. Header / Bar Panel */
+.panel-surface {
+  background: #ffffff;
+  border: 1px solid rgba(23, 23, 23, 0.08);
 }
 
-.dark .glass-panel {
-  background: linear-gradient(180deg, rgba(16, 21, 34, 0.75) 0%, rgba(11, 14, 23, 0.85) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+.dark .panel-surface {
+  background: #0f0f10;
+  border: 1px solid rgba(237, 237, 237, 0.08);
+}
+
+/* 2. Content Card */
+.surface-card {
+  background: #ffffff;
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 140ms cubic-bezier(0.22, 1, 0.36, 1), background-color 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.surface-card:hover {
+  border-color: rgba(23, 23, 23, 0.16);
+}
+
+.dark .surface-card {
+  background: #19191b;
+  border: 1px solid rgba(237, 237, 237, 0.08);
   box-shadow: none;
 }
 
-/* 2. Glass Card (Bug cards, Stat cards) */
-.glass-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+.dark .surface-card:hover {
+  border-color: rgba(237, 237, 237, 0.15);
 }
 
-.glass-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.1);
+/* 3. Raised Surface (Input, Active, Hover state) */
+.surface-raised {
+  background: #f4f4f5;
+  border: 1px solid rgba(23, 23, 23, 0.08);
 }
 
-.dark .glass-card {
-  background: linear-gradient(180deg, rgba(21, 28, 44, 0.8) 0%, rgba(16, 21, 34, 0.95) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+.dark .surface-raised {
+  background: #232325;
+  border: 1px solid rgba(237, 237, 237, 0.08);
 }
 
-.dark .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+/* 4. Inset (Code blocks, verbatim quotes) */
+.surface-inset {
+  background: #f1f1f2;
+  border: 1px solid rgba(23, 23, 23, 0.06);
+  color: #171717;
 }
 
-/* 3. Glass Inset (Code blocks, verbatim quotes) */
-.glass-inset {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
+.dark .surface-inset {
+  background: #111113;
+  border: 1px solid rgba(237, 237, 237, 0.06);
+  color: #a1a1a6;
 }
 
-.dark .glass-inset {
-  background: #05070b;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: #cbd5e1;
+/* Hairline helper */
+.hairline {
+  border-color: rgba(23, 23, 23, 0.08);
+}
+
+.dark .hairline {
+  border-color: rgba(237, 237, 237, 0.08);
 }

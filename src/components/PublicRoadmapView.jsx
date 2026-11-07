@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  Sparkles, ThumbsUp, CheckCircle2, Clock, Wrench, Plus, 
-  ExternalLink, Search, Tag, MessageSquarePlus, Globe
-} from 'lucide-react';
+import { ThumbsUp, Search, Clock, Wrench, CheckCircle2 } from 'lucide-react';
 
 export default function PublicRoadmapView({ bugs = [], onUpvote, onOpenFeedback }) {
   const [search, setSearch] = useState('');
@@ -18,139 +15,126 @@ export default function PublicRoadmapView({ bugs = [], onUpvote, onOpenFeedback 
   const columns = [
     {
       id: 'PLANNED',
-      label: 'Planned / Up Next',
-      desc: 'Triaged issues prioritized for upcoming sprints',
-      badgeBg: 'bg-blue-50 text-blue-700 dark:bg-priority-blue/15 dark:text-priority-blue border-blue-200 dark:border-priority-blue/30',
+      label: 'Planned',
+      desc: 'Triaged issues queued for upcoming work',
       icon: Clock,
       items: filtered.filter(b => b.status === 'OPEN' || !b.status)
     },
     {
       id: 'IN_PROGRESS',
-      label: 'In Development',
-      desc: 'Engineers are actively coding & testing a patch',
-      badgeBg: 'bg-amber-50 text-amber-700 dark:bg-priority-amber/15 dark:text-priority-amber border-amber-200 dark:border-priority-amber/30',
+      label: 'In development',
+      desc: 'Fix currently being written and tested',
       icon: Wrench,
       items: filtered.filter(b => b.status === 'IN_PROGRESS' || b.status === 'IN_REVIEW')
     },
     {
       id: 'SHIPPED',
-      label: 'Shipped & Changelog',
-      desc: 'Fixed and verified in latest production release',
-      badgeBg: 'bg-emerald-50 text-emerald-700 dark:bg-accent-mint/15 dark:text-accent-mint border-emerald-200 dark:border-accent-mint/30',
+      label: 'Shipped',
+      desc: 'Verified and deployed in production release',
       icon: CheckCircle2,
       items: filtered.filter(b => b.status === 'RESOLVED')
     }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       
       {/* Public Header Banner */}
-      <div className="p-6 rounded-2xl glass-panel flex flex-wrap items-center justify-between gap-4 shadow-lg border border-slate-200 dark:border-surface-border">
-        <div className="space-y-1.5 max-w-xl">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-accent-mint/20 dark:text-accent-mint font-bold uppercase tracking-wider flex items-center gap-1">
-              <Globe size={11} /> Public Community Portal
-            </span>
-          </div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            QuickTab Suite — Public Roadmap & Changelog
+      <div className="p-4 rounded-xl surface-card flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-0.5 max-w-xl">
+          <h2 className="text-sm font-medium text-ink-primary-light dark:text-ink-primary-dark">
+            Public roadmap & changelog
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            Transparent progress on bug fixes, user suggestions, and shipped updates. Upvote issues to help our engineering team prioritize what matters most to you!
+          <p className="text-xs text-ink-muted-light dark:text-ink-muted-dark leading-relaxed">
+            Transparent tracking of bug fixes and community feedback. Upvote issues to help prioritize what gets addressed first.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={onOpenFeedback}
-            className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-gradient-to-r dark:from-accent-mint dark:to-emerald-600 dark:hover:from-emerald-500 dark:hover:to-emerald-600 text-white dark:text-slate-950 font-bold text-xs flex items-center gap-2 shadow-md transition"
-          >
-            <MessageSquarePlus size={14} />
-            <span>Submit Issue or Idea</span>
-          </button>
-        </div>
+        <button
+          onClick={onOpenFeedback}
+          className="h-8 px-3 rounded-lg bg-ink-primary-light dark:bg-ink-primary-dark text-canvas-light dark:text-canvas-dark hover:opacity-90 font-medium text-xs flex items-center gap-1.5 transition-opacity"
+        >
+          <span>Submit issue or idea</span>
+        </button>
       </div>
 
       {/* Search Bar */}
-      <div className="relative max-w-md">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="relative max-w-sm">
+        <Search size={13} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted-light dark:text-ink-muted-dark" />
         <input
           type="text"
-          placeholder="Search planned fixes or shipped updates..."
+          placeholder="Search planned or shipped fixes..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full bg-white dark:bg-surface-inset border border-slate-200 dark:border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition font-mono shadow-xs"
+          className="w-full h-8 bg-surface-inset-light dark:bg-surface-inset-dark border border-surface-border-light dark:border-surface-border-dark rounded-lg pl-8 pr-3 text-xs text-ink-primary-light dark:text-ink-primary-dark placeholder:text-ink-muted-light dark:placeholder:text-ink-muted-dark focus:outline-none focus:border-ink-primary-light dark:focus:border-ink-primary-dark transition-colors font-mono"
         />
       </div>
 
-      {/* 3 Public Columns: Planned, In Development, Shipped */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+      {/* 3 Columns: Planned, In Development, Shipped */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
         {columns.map(col => {
           const Icon = col.icon;
           return (
-            <div key={col.id} className="space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-surface-border pb-2.5">
+            <div key={col.id} className="space-y-2.5">
+              <div className="flex items-center justify-between pb-2 border-b border-surface-border-light dark:border-surface-border-dark">
                 <div className="flex items-center gap-2">
-                  <Icon size={15} className="text-slate-500" />
-                  <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 font-mono">
+                  <Icon size={14} strokeWidth={1.5} className="text-ink-muted-light dark:text-ink-muted-dark" />
+                  <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">
                     {col.label}
                   </h3>
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${col.badgeBg}`}>
+                  <span className="text-[11px] font-mono tabular text-ink-muted-light dark:text-ink-muted-dark">
                     {col.items.length}
                   </span>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">{col.desc}</p>
+              <p className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">{col.desc}</p>
 
               {/* Cards List */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {col.items.length === 0 ? (
-                  <div className="p-8 text-center glass-panel rounded-2xl text-slate-400 text-xs italic font-mono">
-                    No items currently in this stage.
+                  <div className="p-6 text-center surface-card rounded-lg text-ink-muted-light dark:text-ink-muted-dark text-xs font-mono">
+                    No items in this stage
                   </div>
                 ) : (
                   col.items.map(bug => (
                     <div 
                       key={bug.id} 
-                      className="p-4 rounded-2xl glass-card transition border border-slate-200 dark:border-surface-border bg-white dark:bg-[#101522] space-y-3 shadow-xs"
+                      className="p-3.5 rounded-xl surface-card space-y-2.5"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono text-[10px] font-bold text-emerald-600 dark:text-accent-mint bg-emerald-50 dark:bg-accent-mint/10 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-accent-mint/20">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-1.5 font-mono text-[10px] tabular text-ink-muted-light dark:text-ink-muted-dark">
+                            <span className="text-accent font-medium">
                               BL-USR-{bug.id.slice(-3)}
                             </span>
                             {bug.affectedVersions && bug.affectedVersions[0] && (
-                              <span className="text-[10px] font-mono text-slate-500 bg-slate-100 dark:bg-surface-inset px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/5">
-                                {bug.affectedVersions[0]}
-                              </span>
+                              <span>· {bug.affectedVersions[0]}</span>
                             )}
                           </div>
-                          <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">
+                          <h4 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark leading-snug">
                             {bug.title}
                           </h4>
                         </div>
 
-                        {/* Interactive Upvote Button */}
+                        {/* Upvote Button */}
                         <button
                           onClick={(e) => onUpvote && onUpvote(e, bug)}
-                          className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 hover:border-emerald-500 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-accent-mint flex items-center gap-1.5 text-xs font-mono font-bold transition hover:scale-105 shrink-0 bg-slate-50 dark:bg-surface-inset shadow-xs"
-                          title="Upvote this issue to increase priority"
+                          className="h-7 px-2 rounded-lg surface-raised hover:text-ink-primary-light dark:hover:text-ink-primary-dark flex items-center gap-1.5 text-xs font-mono tabular text-ink-secondary-light dark:text-ink-secondary-dark transition-colors shrink-0"
+                          title="Upvote issue"
                         >
-                          <ThumbsUp size={12} />
+                          <ThumbsUp size={11} strokeWidth={1.5} />
                           <span>{bug.reportCount || 1}</span>
                         </button>
                       </div>
 
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-sans glass-inset p-2.5 rounded-xl line-clamp-2">
+                      <p className="text-[11px] text-ink-secondary-light dark:text-ink-secondary-dark leading-relaxed surface-inset p-2.5 rounded-lg line-clamp-2">
                         {bug.technicalSummary}
                       </p>
 
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1 border-t border-slate-100 dark:border-white/5">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark pt-0.5">
                         <span className="capitalize">{bug.platform || 'General'}</span>
-                        <span className="text-emerald-600 dark:text-accent-mint font-semibold">
-                          {col.id === 'SHIPPED' ? '✓ Verified in Production' : `${bug.reportCount || 1} Community Reports`}
+                        <span>
+                          {col.id === 'SHIPPED' ? 'Verified in release' : `${bug.reportCount || 1} reports`}
                         </span>
                       </div>
                     </div>

@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  BarChart3, Star, Flame, ShieldAlert, CheckCircle2, TrendingUp, 
-  Smartphone, Globe, Layers, ArrowUpRight, Calculator, Sparkles, Check
-} from 'lucide-react';
+import { Check, ArrowUpRight, Calculator } from 'lucide-react';
 
 export default function TelemetryView({ analytics, bugs = [], sources = [] }) {
   const ratingCounts = analytics?.ratingCounts || { 1: 3, 2: 2, 3: 1, 4: 0, 5: 0 };
@@ -12,12 +9,23 @@ export default function TelemetryView({ analytics, bugs = [], sources = [] }) {
   const userBugs = bugs.filter(b => b.originType === 'USER_REPORTED');
   const activeUserBugs = userBugs.filter(b => b.status !== 'RESOLVED');
 
-  // Breakdown by platform
-  const platformCounts = {
-    chrome: userBugs.filter(b => (b.platform || '').includes('chrome')).length,
-    ios: userBugs.filter(b => (b.platform || '').includes('app') || (b.platform || '').includes('ios')).length,
-    android: userBugs.filter(b => (b.platform || '').includes('play')).length
-  };
+  const knownChannels = [
+    { id: 'chrome', match: 'chrome', name: 'Chrome Web Store' },
+    { id: 'ios', match: 'ios|app_store|apple', name: 'Apple App Store' },
+    { id: 'play', match: 'play|android', name: 'Google Play Store' },
+    { id: 'firefox', match: 'firefox', name: 'Firefox Add-ons' },
+    { id: 'edge', match: 'edge', name: 'Microsoft Edge' },
+    { id: 'producthunt', match: 'product_hunt|producthunt', name: 'Product Hunt' },
+    { id: 'trustpilot', match: 'trustpilot', name: 'Trustpilot' }
+  ];
+
+  const channelCounts = knownChannels.map(ch => {
+    const re = new RegExp(ch.match, 'i');
+    const count = userBugs.filter(b => re.test(b.platform || '')).length;
+    return { ...ch, count };
+  });
+
+  const activeChannels = channelCounts.filter(ch => ch.count > 0 || ['chrome', 'ios', 'play'].includes(ch.id));
 
   // Interactive Rating Recovery Simulator State
   const [selectedBugsToFix, setSelectedBugsToFix] = useState(() => 
@@ -39,76 +47,74 @@ export default function TelemetryView({ analytics, bugs = [], sources = [] }) {
     setSelectedBugsToFix(new Set());
   };
 
-  // Calculate Rating Recovery Math:
-  // Current star sum:
+  // Math
   const currentStarSum = Object.entries(ratingCounts).reduce((acc, [star, count]) => acc + (parseInt(star, 10) * count), 0);
-  
-  // Calculate converted reviews from selected bugs (each resolved bug converts 1-star reviews into 5-star reviews):
   const convertedReviews = activeUserBugs
     .filter(b => selectedBugsToFix.has(b.id))
     .reduce((sum, b) => sum + (b.reportCount || 1), 0);
 
-  // If converted, replace those 1-star reviews (+4 stars each)
   const simulatedStarSum = currentStarSum + (convertedReviews * 4);
   const simulatedRating = totalReviews > 0 
     ? Math.min(5.0, Math.max(1.0, simulatedStarSum / totalReviews)).toFixed(1)
     : "5.0";
   
   const ratingJump = (parseFloat(simulatedRating) - avgRating).toFixed(1);
-
-  // Reviews needed to reach 4.5 Stars:
-  // (currentStarSum + 5 * X) / (totalReviews + X) = 4.5 => X = (4.5 * totalReviews - currentStarSum) / 0.5
   const neededFor45 = Math.max(0, Math.ceil((4.5 * totalReviews - currentStarSum) / 0.5));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       
       {/* Top Banner */}
-      <div className="p-6 rounded-2xl glass-panel flex items-center justify-between shadow-2xl relative overflow-hidden">
-        <div className="space-y-1 relative z-10">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-accent-mint font-mono">
-              Omni-Channel Store Telemetry
-            </span>
-          </div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Store Health & Voice-of-Customer Analytics</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Aggregated customer telemetry across Chrome Web Store, App Store & Google Play</p>
+      <div className="p-4 rounded-xl surface-card flex items-center justify-between">
+        <div className="space-y-0.5">
+          <h2 className="text-sm font-medium text-ink-primary-light dark:text-ink-primary-dark">
+            Store telemetry & channel distribution
+          </h2>
+          <p className="text-xs text-ink-muted-light dark:text-ink-muted-dark">
+            Aggregated customer health across Chrome Web Store, App Store and Google Play
+          </p>
         </div>
-        <div className="text-right relative z-10 bg-slate-50 dark:bg-surface-inset p-3.5 rounded-2xl border border-slate-200 dark:border-white/5">
-          <span className="text-3xl font-black text-accent-gold font-mono">{avgRating.toFixed(1)}</span>
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block uppercase tracking-wider">Overall Rating</span>
+        <div className="text-right surface-raised px-3 py-2 rounded-lg">
+          <span className="text-xl font-mono tabular font-medium text-ink-primary-light dark:text-ink-primary-dark">
+            {avgRating.toFixed(1)} ★
+          </span>
+          <span className="text-[10px] text-ink-muted-light dark:text-ink-muted-dark block">
+            Average rating
+          </span>
         </div>
       </div>
 
       {/* Grid Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         
         {/* Rating Breakdown */}
-        <div className="p-5 rounded-2xl glass-card space-y-4">
+        <div className="p-4 rounded-xl surface-card space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">Rating Distribution</h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">{totalReviews} Reviews</span>
+            <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">
+              Rating distribution
+            </h3>
+            <span className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark font-mono tabular">
+              {totalReviews} reviews
+            </span>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {[5, 4, 3, 2, 1].map(star => {
               const count = ratingCounts[star] || 0;
               const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
-              const colors = {
-                5: 'bg-accent-mint',
-                4: 'bg-teal-400',
-                3: 'bg-accent-gold',
-                2: 'bg-amber-500',
-                1: 'bg-priority-red'
-              };
               return (
                 <div key={star} className="space-y-1 text-xs">
-                  <div className="flex justify-between text-slate-500 dark:text-slate-400 font-mono text-[11px]">
-                    <span>{star} Stars</span>
+                  <div className="flex justify-between text-ink-muted-light dark:text-ink-muted-dark font-mono tabular text-[10px]">
+                    <span>{star} stars</span>
                     <span>{count} ({Math.round(pct)}%)</span>
                   </div>
-                  <div className="h-2 bg-slate-100 dark:bg-surface-inset rounded-full overflow-hidden border border-slate-200 dark:border-white/5">
-                    <div className={`h-full rounded-full ${colors[star]} shadow-sm`} style={{ width: `${pct}%` }} />
+                  <div className="h-1.5 bg-surface-raised-light dark:bg-surface-raised-dark rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        star >= 4 ? 'bg-accent' : star === 3 ? 'bg-amber-500' : 'bg-red-500/70'
+                      }`} 
+                      style={{ width: `${pct}%` }} 
+                    />
                   </div>
                 </div>
               );
@@ -117,145 +123,146 @@ export default function TelemetryView({ analytics, bugs = [], sources = [] }) {
         </div>
 
         {/* Platform Bug Distribution */}
-        <div className="p-5 rounded-2xl glass-card space-y-4">
+        <div className="p-4 rounded-xl surface-card space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">Channel Defect Spread</h3>
-            <span className="text-xs text-accent-mint font-mono font-bold">Live Scrapers</span>
+            <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">
+              Channel defect count
+            </h3>
+            <span className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark font-mono">
+              Channels
+            </span>
           </div>
 
-          <div className="space-y-3">
-            <div className="p-3 rounded-xl glass-inset flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Globe size={16} className="text-accent-chrome" />
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Chrome Web Store</span>
+          <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+            {activeChannels.map(ch => (
+              <div key={ch.id} className="p-2 rounded-lg surface-raised flex items-center justify-between text-xs">
+                <span className="text-ink-secondary-light dark:text-ink-secondary-dark truncate">
+                  {ch.name}
+                </span>
+                <span className="text-[11px] font-mono tabular text-ink-primary-light dark:text-ink-primary-dark shrink-0">
+                  {ch.count} issues
+                </span>
               </div>
-              <span className="text-xs font-mono font-bold text-accent-chrome px-2.5 py-0.5 rounded-full bg-accent-chrome/10 border border-accent-chrome/30">
-                {platformCounts.chrome} Issues
-              </span>
-            </div>
-
-            <div className="p-3 rounded-xl glass-inset flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Smartphone size={16} className="text-accent-apple" />
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">iOS App Store</span>
-              </div>
-              <span className="text-xs font-mono font-bold text-accent-apple px-2.5 py-0.5 rounded-full bg-accent-apple/10 border border-accent-apple/30">
-                {platformCounts.ios} Issues
-              </span>
-            </div>
-
-            <div className="p-3 rounded-xl glass-inset flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Smartphone size={16} className="text-accent-play" />
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Google Play Store</span>
-              </div>
-              <span className="text-xs font-mono font-bold text-accent-play px-2.5 py-0.5 rounded-full bg-accent-play/10 border border-accent-play/30">
-                {platformCounts.android} Issues
-              </span>
-            </div>
+            ))}
           </div>
         </div>
 
         {/* Resolution Efficiency */}
-        <div className="p-5 rounded-2xl glass-card space-y-4">
+        <div className="p-4 rounded-xl surface-card space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">Triage Efficiency</h3>
-            <span className="text-xs text-accent-mint font-bold font-mono">100% AUTOMATION</span>
+            <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">
+              Triage efficiency
+            </h3>
+            <span className="text-[11px] text-accent font-mono">
+              automated
+            </span>
           </div>
 
-          <div className="space-y-3 text-xs">
-            <div className="p-3 rounded-xl glass-inset space-y-1">
-              <span className="text-slate-500 dark:text-slate-400 text-[11px] font-mono">AI Noise Filter Rejection</span>
-              <p className="text-sm font-bold text-slate-900 dark:text-white font-mono">43% Discarded</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">Unhelpful rants and generic praise filtered out</p>
+          <div className="space-y-2 text-xs">
+            <div className="p-2.5 rounded-lg surface-inset space-y-0.5">
+              <span className="text-ink-muted-light dark:text-ink-muted-dark text-[10px] font-mono">
+                Noise filter rejection
+              </span>
+              <p className="text-xs font-mono font-medium text-ink-primary-light dark:text-ink-primary-dark tabular">
+                43% discarded
+              </p>
+              <p className="text-[10px] text-ink-muted-light dark:text-ink-muted-dark">
+                Filtered unhelpful or generic comments
+              </p>
             </div>
 
-            <div className="p-3 rounded-xl glass-inset space-y-1">
-              <span className="text-slate-500 dark:text-slate-400 text-[11px] font-mono">Deduplication Clustering Ratio</span>
-              <p className="text-sm font-bold text-accent-mint font-mono">3.8x Compression</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">Duplicate reviews merged into single master bugs</p>
+            <div className="p-2.5 rounded-lg surface-inset space-y-0.5">
+              <span className="text-ink-muted-light dark:text-ink-muted-dark text-[10px] font-mono">
+                Cluster deduplication
+              </span>
+              <p className="text-xs font-mono font-medium text-accent tabular">
+                3.8x compression
+              </p>
+              <p className="text-[10px] text-ink-muted-light dark:text-ink-muted-dark">
+                Duplicate complaints grouped into master issues
+              </p>
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* NEW KILLER FEATURE: STORE RATING RECOVERY & FIX ROI FORECAST SIMULATOR */}
-      <div className="p-6 rounded-2xl glass-card border border-emerald-300/40 dark:border-accent-mint/30 space-y-5 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-surface-border pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-accent-mint/10 border border-emerald-200 dark:border-accent-mint/20 flex items-center justify-center text-emerald-600 dark:text-accent-mint">
-              <Calculator size={18} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Store Rating Recovery & Fix ROI Simulator</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-accent-mint/20 dark:text-accent-mint">
-                  Live Predictive Model
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Simulate how resolving user bugs lifts your public store score when users update their rating
-              </p>
-            </div>
+      {/* RATING RECOVERY & FIX FORECAST SIMULATOR (The Moment) */}
+      <div className="p-4 rounded-xl surface-card space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-surface-border-light dark:border-surface-border-dark">
+          <div>
+            <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">
+              Rating recovery forecast
+            </h3>
+            <p className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">
+              Simulate score improvement as customer reported defects are resolved
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={selectAll}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-accent-mint/10 dark:text-accent-mint border border-emerald-200 dark:border-accent-mint/20 hover:bg-emerald-100 transition"
+              className="h-6 px-2 rounded surface-raised text-[11px] text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark transition-colors"
             >
-              Select All ({activeUserBugs.length})
+              Select all ({activeUserBugs.length})
             </button>
             <button
               onClick={clearAll}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-white transition"
+              className="h-6 px-2 rounded surface-raised text-[11px] text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark transition-colors"
             >
               Clear
             </button>
           </div>
         </div>
 
-        {/* Prediction Display Header */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/5">
-          <div className="space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Current Rating</span>
-            <div className="text-2xl font-black text-slate-700 dark:text-slate-300 font-mono">
+        {/* Prediction figures */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded-lg surface-inset">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark">
+              Current rating
+            </span>
+            <div className="text-lg font-mono tabular font-medium text-ink-primary-light dark:text-ink-primary-dark">
               {avgRating.toFixed(1)} ★
             </div>
           </div>
 
-          <div className="space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Selected Fixes</span>
-            <div className="text-2xl font-black text-emerald-600 dark:text-accent-mint font-mono">
-              {selectedBugsToFix.size} <span className="text-xs font-normal text-slate-400">bugs ({convertedReviews} rants)</span>
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark">
+              Selected fixes
+            </span>
+            <div className="text-lg font-mono tabular font-medium text-ink-primary-light dark:text-ink-primary-dark">
+              {selectedBugsToFix.size} <span className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">({convertedReviews} reviews)</span>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-600 dark:text-accent-mint font-bold">Projected Rating</span>
-            <div className="text-2xl font-black text-emerald-600 dark:text-accent-mint font-mono flex items-center gap-1.5">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-mono text-accent">
+              Projected rating
+            </span>
+            <div className="text-lg font-mono tabular font-medium text-accent flex items-center gap-1">
               <span>{simulatedRating} ★</span>
               {parseFloat(ratingJump) > 0 && (
-                <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-accent-mint/20 dark:text-accent-mint flex items-center">
-                  <ArrowUpRight size={12} />+{ratingJump}
+                <span className="text-xs font-normal text-accent">
+                  (+{ratingJump})
                 </span>
               )}
             </div>
           </div>
 
-          <div className="space-y-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Target 4.5 ★ Inflow</span>
-            <div className="text-2xl font-black text-amber-500 dark:text-accent-gold font-mono">
-              +{neededFor45} <span className="text-xs font-normal text-slate-400">5★ reviews needed</span>
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark">
+              Needed for 4.5 ★
+            </span>
+            <div className="text-lg font-mono tabular font-medium text-ink-primary-light dark:text-ink-primary-dark">
+              +{neededFor45} <span className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">reviews</span>
             </div>
           </div>
         </div>
 
         {/* Bug checklist for simulation */}
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-            Select User Bugs to Include in Your Next Sprint:
+          <span className="text-xs text-ink-secondary-light dark:text-ink-secondary-dark font-medium">
+            Toggle customer issues to include in forecast:
           </span>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
             {activeUserBugs.map(bug => {
@@ -264,28 +271,30 @@ export default function TelemetryView({ analytics, bugs = [], sources = [] }) {
                 <div
                   key={bug.id}
                   onClick={() => toggleBugSelection(bug.id)}
-                  className={`p-3 rounded-xl border text-xs cursor-pointer flex items-center justify-between transition ${
+                  className={`p-2.5 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-colors duration-140 ${
                     isSelected 
-                      ? 'bg-emerald-50/70 dark:bg-accent-mint/10 border-emerald-300 dark:border-accent-mint/30 shadow-xs'
-                      : 'bg-white dark:bg-sidebar border-slate-200 dark:border-white/5 opacity-70 hover:opacity-100'
+                      ? 'surface-raised border-surface-border-light dark:border-surface-border-dark'
+                      : 'surface-card border-transparent opacity-60 hover:opacity-90'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    <div className={`w-4 h-4 rounded flex items-center justify-center border transition ${
-                      isSelected ? 'bg-emerald-600 border-emerald-600 text-white dark:bg-accent-mint dark:text-slate-950' : 'border-slate-400'
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-colors ${
+                      isSelected 
+                        ? 'bg-accent border-accent text-canvas-dark' 
+                        : 'border-surface-border-light dark:border-surface-border-dark'
                     }`}>
-                      {isSelected && <Check size={12} strokeWidth={3} />}
+                      {isSelected && <Check size={10} strokeWidth={2.5} />}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-slate-900 dark:text-white truncate">
+                      <p className="font-medium text-ink-primary-light dark:text-ink-primary-dark truncate">
                         {bug.title}
                       </p>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        🔥 {bug.reportCount || 1} complaints • {bug.severity}
+                      <span className="text-[10px] text-ink-muted-light dark:text-ink-muted-dark font-mono tabular">
+                        {bug.reportCount || 1} complaints · {bug.severity.toLowerCase()}
                       </span>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-accent-mint shrink-0">
+                  <span className="text-[10px] font-mono tabular text-accent shrink-0">
                     +{((bug.reportCount || 1) * 4 / totalReviews).toFixed(1)} ★
                   </span>
                 </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Bug, Plus, Link2, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, 
+  Bug, Plus, Link2, RefreshCw, CheckCircle2, AlertTriangle, 
   Clock, ShieldAlert, Cpu, Terminal, ExternalLink, ChevronRight, Filter,
   ArrowRight, Search, Check, Layers, Copy, LayoutGrid, Kanban, Radio, BarChart3,
   Sun, Moon, MessageSquarePlus, Download, ThumbsUp, Globe
@@ -23,7 +23,7 @@ export default function App() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Theme State (Day / Light vs Night / Dark)
+  // Theme State
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
@@ -44,7 +44,7 @@ export default function App() {
   };
 
   // Navigation & View State
-  const [currentView, setCurrentView] = useState('dual'); // 'dual' | 'kanban' | 'stream' | 'telemetry'
+  const [currentView, setCurrentView] = useState('dual'); // 'dual' | 'kanban' | 'stream' | 'telemetry' | 'roadmap'
   const [selectedBug, setSelectedBug] = useState(null);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isAddBugOpen, setIsAddBugOpen] = useState(false);
@@ -53,7 +53,7 @@ export default function App() {
   // Issue Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('ALL'); // 'ALL' | 'CRITICAL' | 'HIGH'
-  const [filterPlatform, setFilterPlatform] = useState('ALL'); // 'ALL' | 'chrome' | 'app_store' | 'play_store'
+  const [filterPlatform, setFilterPlatform] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ACTIVE');   // 'ACTIVE' | 'ALL' | 'RESOLVED'
   
   const [simulating, setSimulating] = useState(false);
@@ -120,15 +120,15 @@ export default function App() {
 
       setNotification({
         message: data.triageResult.isDuplicate 
-          ? `⚡ AI clustered review into: "${data.affectedBug?.title}"`
-          : `✨ New bug extracted by AI: "${data.affectedBug?.title}"`,
+          ? `Clustered review into "${data.affectedBug?.title}"`
+          : `New issue extracted: "${data.affectedBug?.title}"`,
         reviewText: data.review.reviewText,
         author: data.review.authorName,
         platform: data.review.platform
       });
 
       await loadData();
-      setTimeout(() => setNotification(null), 6000);
+      setTimeout(() => setNotification(null), 5000);
     } catch (err) {
       console.error("Simulation failed:", err);
     } finally {
@@ -136,14 +136,13 @@ export default function App() {
     }
   };
 
-  // Quick 1-click prompt copy
+  // Quick prompt copy
   const handleQuickCopyPrompt = async (e, bug) => {
     e.stopPropagation();
     try {
       const res = await fetch(`/api/bugs/${bug.id}/cursor-prompt`);
       const data = await res.json();
       navigator.clipboard.writeText(data.prompt);
-      alert(`Copied Cursor/Claude Prompt for:\n"${bug.title}"`);
     } catch (err) {
       console.error(err);
     }
@@ -169,12 +168,12 @@ export default function App() {
     }
   };
 
-  // 1-Click Export to CSV
+  // Export to CSV
   const handleExportCSV = () => {
-    const headers = ["Issue Key", "Type", "Title", "Severity", "Status", "Platform", "Reports", "Technical Summary"];
+    const headers = ["Issue key", "Type", "Title", "Severity", "Status", "Platform", "Reports", "Summary"];
     const rows = allFilteredBugs.map(b => [
       b.originType === 'USER_REPORTED' ? `BL-USR-${b.id.slice(-3)}` : `BL-INT-${b.id.slice(-3)}`,
-      b.originType === 'USER_REPORTED' ? 'User Reported' : 'Internal Bug',
+      b.originType === 'USER_REPORTED' ? 'User reported' : 'Internal bug',
       `"${(b.title || '').replace(/"/g, '""')}"`,
       b.severity,
       b.status,
@@ -192,7 +191,7 @@ export default function App() {
     document.body.removeChild(link);
   };
 
-  // Filtering Function
+  // Filtering
   const filterBug = (b) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = b.title.toLowerCase().includes(q) || (b.technicalSummary || '').toLowerCase().includes(q);
@@ -200,12 +199,27 @@ export default function App() {
 
     if (filterStatus === 'ACTIVE' && b.status === 'RESOLVED') return false;
     if (filterStatus === 'RESOLVED' && b.status !== 'RESOLVED') return false;
-
     if (filterSeverity !== 'ALL' && b.severity !== filterSeverity) return false;
 
     if (filterPlatform !== 'ALL') {
       const p = (b.platform || '').toLowerCase();
-      if (!p.includes(filterPlatform)) return false;
+      const platformRegexMap = {
+        chrome: /chrome/i,
+        app_store: /app_store|ios|apple/i,
+        play_store: /play|android/i,
+        firefox_addons: /firefox/i,
+        edge_addons: /edge/i,
+        product_hunt: /product_hunt|producthunt/i,
+        trustpilot: /trustpilot/i,
+        g2: /g2/i,
+        capterra: /capterra/i,
+        steam: /steam/i,
+        github: /github/i,
+        shopify: /shopify/i,
+        discord: /discord/i
+      };
+      const rx = platformRegexMap[filterPlatform] || new RegExp(filterPlatform, 'i');
+      if (!rx.test(p)) return false;
     }
 
     return true;
@@ -215,15 +229,23 @@ export default function App() {
   const filteredUser = userBugs.filter(filterBug);
   const allFilteredBugs = [...filteredUser, ...filteredInternal];
 
-  const priorityChevrons = {
-    CRITICAL: { icon: '▲▲', label: 'Highest', color: 'text-rose-600 dark:text-priority-red bg-rose-50 dark:bg-priority-red/10 border-rose-200 dark:border-priority-red/30' },
-    HIGH: { icon: '▲', label: 'High', color: 'text-amber-600 dark:text-priority-amber bg-amber-50 dark:bg-priority-amber/10 border-amber-200 dark:border-priority-amber/30' },
-    MEDIUM: { icon: '■', label: 'Medium', color: 'text-blue-600 dark:text-priority-blue bg-blue-50 dark:bg-priority-blue/10 border-blue-200 dark:border-priority-blue/30' },
-    LOW: { icon: '▼', label: 'Low', color: 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-500/10 border-slate-200 dark:border-slate-500/20' }
+  const severityLabels = {
+    CRITICAL: { label: 'Critical', color: 'text-semantic-negative-light dark:text-semantic-negative-dark bg-red-500/10' },
+    HIGH: { label: 'High', color: 'text-semantic-warning-light dark:text-semantic-warning-dark bg-amber-500/10' },
+    MEDIUM: { label: 'Medium', color: 'text-ink-secondary-light dark:text-ink-secondary-dark bg-surface-raised-light dark:bg-surface-raised-dark' },
+    LOW: { label: 'Low', color: 'text-ink-muted-light dark:text-ink-muted-dark bg-surface-raised-light dark:bg-surface-raised-dark' }
+  };
+
+  const viewTitles = {
+    dual: 'Dual backlog',
+    kanban: 'Kanban workflow',
+    stream: 'Review stream',
+    telemetry: 'Store telemetry',
+    roadmap: 'Public roadmap'
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-canvas text-slate-900 dark:text-slate-100 flex flex-row selection:bg-emerald-500 selection:text-white font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-canvas-light dark:bg-canvas-dark text-ink-primary-light dark:text-ink-primary-dark flex flex-row font-sans selection:bg-accent/20 transition-colors duration-150">
       
       {/* 1. SIDEBAR */}
       <Sidebar
@@ -244,147 +266,164 @@ export default function App() {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto max-h-screen">
         
         {/* Top Header Bar */}
-        <header className="border-b border-slate-200 dark:border-surface-border bg-white/80 dark:bg-sidebar/70 backdrop-blur sticky top-0 z-20 px-8 py-3.5 flex items-center justify-between shadow-xs dark:shadow-lg transition-colors duration-200">
+        <header className="h-14 border-b border-surface-border-light dark:border-surface-border-dark bg-canvas-light dark:bg-canvas-dark sticky top-0 z-20 px-6 flex items-center justify-between transition-colors duration-150">
           <div className="flex items-center gap-3">
-            <h1 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              {currentView === 'dual' && '📌 Dual Backlog (My Bugs vs User Bugs)'}
-              {currentView === 'kanban' && '📋 Kanban Workflow'}
-              {currentView === 'stream' && '📡 Live Store Review Stream'}
-              {currentView === 'telemetry' && '📊 Store Health & Telemetry'}
-              {currentView === 'roadmap' && '🌐 Public Community Roadmap & Changelog'}
+            <h1 className="text-sm font-medium text-ink-primary-light dark:text-ink-primary-dark">
+              {viewTitles[currentView]}
             </h1>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-surface-inset px-2 py-0.5 rounded border border-slate-200 dark:border-white/5">
-              [QuickTab Suite v2.4.2]
+            <span className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark font-mono tabular">
+              v2.4.2
             </span>
           </div>
 
           {/* Quick Header Actions */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setIsFeedbackOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-accent-mint border border-emerald-200 dark:border-accent-mint/30 flex items-center gap-1.5 transition shadow-xs"
-              title="Submit a review or report an issue on BugListy itself (In-App Dogfooding)"
+              className="h-8 px-2.5 rounded-lg text-xs font-medium surface-raised text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark flex items-center gap-1.5 transition-colors duration-140"
+              title="Submit feedback on BugListy"
             >
-              <MessageSquarePlus size={13} />
-              <span>Review BugListy</span>
+              <MessageSquarePlus size={13} strokeWidth={1.5} />
+              <span>Feedback</span>
             </button>
 
             <button
               onClick={() => setIsAddSourceOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 dark:bg-surface-elevated dark:hover:bg-surface-hover text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 flex items-center gap-1.5 transition shadow-xs"
+              className="h-8 px-2.5 rounded-lg text-xs font-medium surface-raised text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark flex items-center gap-1.5 transition-colors duration-140"
             >
-              <Link2 size={13} className="text-emerald-600 dark:text-accent-mint" />
-              Add Store Link
+              <Link2 size={13} strokeWidth={1.5} />
+              <span>Add channel</span>
             </button>
 
             <button
               onClick={() => setIsAddBugOpen(true)}
-              className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 dark:bg-gradient-to-r dark:from-accent-mint dark:to-emerald-600 dark:hover:from-emerald-500 dark:hover:to-emerald-600 text-white dark:text-slate-950 flex items-center gap-1.5 shadow-md shadow-emerald-600/20 dark:shadow-accent-mint/20 transition"
+              className="h-8 px-3 rounded-lg text-xs font-medium bg-ink-primary-light dark:bg-ink-primary-dark text-canvas-light dark:text-canvas-dark hover:opacity-90 flex items-center gap-1.5 transition-opacity duration-140"
             >
-              <Plus size={15} className="stroke-[2.5]" />
-              Create Issue
+              <Plus size={14} strokeWidth={2} />
+              <span>Create issue</span>
             </button>
           </div>
         </header>
 
         {/* Real-time Notification Banner */}
         {notification && (
-          <div className="bg-emerald-50 dark:bg-[#0c1322] border-b border-emerald-200 dark:border-accent-mint/40 px-8 py-2.5 animate-in slide-in-from-top duration-150 shadow-sm dark:shadow-xl">
+          <div className="border-b border-surface-border-light dark:border-surface-border-dark bg-surface-raised-light dark:bg-surface-raised-dark px-6 py-2.5">
             <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-accent-mint animate-ping shrink-0" />
-                <span className="font-bold text-emerald-800 dark:text-accent-mint">{notification.message}</span>
-                <span className="text-slate-600 dark:text-slate-300 italic truncate max-w-md">"{notification.reviewText}"</span>
-                <span className="text-slate-500 shrink-0 font-mono">— {notification.author} ({notification.platform})</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                <span className="font-medium text-ink-primary-light dark:text-ink-primary-dark">{notification.message}</span>
+                <span className="text-ink-muted-light dark:text-ink-muted-dark truncate max-w-md">"{notification.reviewText}"</span>
+                <span className="text-ink-muted-light dark:text-ink-muted-dark shrink-0 font-mono text-[11px]">— {notification.author} ({notification.platform})</span>
               </div>
-              <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white pl-4">✕</button>
+              <button 
+                onClick={() => setNotification(null)} 
+                className="text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark pl-4 text-xs"
+              >
+                Dismiss
+              </button>
             </div>
           </div>
         )}
 
         {/* Main Body Canvas */}
-        <main className="p-8 space-y-6 flex-1">
+        <main className="p-6 space-y-5 flex-1 max-w-7xl w-full">
           
           {/* Metric Cards */}
           <MetricCards analytics={analytics} />
 
-          {/* Search & Quick Filter Chips */}
-          <div className="p-3.5 rounded-2xl glass-panel flex flex-wrap items-center justify-between gap-3 shadow-xs dark:shadow-lg">
+          {/* Search & Quick Filter Controls */}
+          <div className="p-2 rounded-xl surface-card flex flex-wrap items-center justify-between gap-2.5">
             
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[240px] max-w-md">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="relative flex-1 min-w-[220px] max-w-sm">
+              <Search size={13} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted-light dark:text-ink-muted-dark" />
               <input
                 type="text"
-                placeholder="Search issues, repro steps, error codes..."
+                placeholder="Search issues..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/5 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 dark:focus:border-accent-mint transition font-mono"
+                className="w-full h-8 bg-surface-inset-light dark:bg-surface-inset-dark border border-surface-border-light dark:border-surface-border-dark rounded-lg pl-8 pr-3 text-xs text-ink-primary-light dark:text-ink-primary-dark placeholder:text-ink-muted-light dark:placeholder:text-ink-muted-dark focus:outline-none focus:border-ink-primary-light dark:focus:border-ink-primary-dark transition-colors duration-140 font-mono"
               />
             </div>
 
-            {/* Quick Filter Chips */}
+            {/* Filter buttons */}
             <div className="flex items-center gap-1.5 flex-wrap text-xs">
               
-              {/* Status Filter */}
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-surface-inset p-1 border border-slate-200 dark:border-white/5 rounded-xl">
+              {/* Status Segmented Control */}
+              <div className="flex items-center gap-0.5 bg-surface-inset-light dark:bg-surface-inset-dark p-0.5 rounded-lg border border-surface-border-light dark:border-surface-border-dark">
                 {['ACTIVE', 'ALL', 'RESOLVED'].map(st => (
                   <button
                     key={st}
                     onClick={() => setFilterStatus(st)}
-                    className={`px-3 py-1 rounded-lg font-medium transition ${
+                    className={`h-7 px-2.5 rounded-md text-xs transition-colors duration-140 ${
                       filterStatus === st 
-                        ? 'bg-emerald-600 text-white dark:bg-accent-mint dark:text-slate-950 font-bold shadow-sm' 
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
+                        ? 'bg-canvas-light dark:bg-surface-raised-dark text-ink-primary-light dark:text-ink-primary-dark font-medium shadow-xs' 
+                        : 'text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
                     }`}
                   >
-                    {st === 'ACTIVE' ? 'Active Backlog' : st === 'RESOLVED' ? 'Resolved' : 'All Issues'}
+                    {st === 'ACTIVE' ? 'Active' : st === 'RESOLVED' ? 'Resolved' : 'All'}
                   </button>
                 ))}
               </div>
 
-              {/* Severity / Critical Filter */}
+              {/* Critical Severity Filter */}
               <button
                 onClick={() => setFilterSeverity(filterSeverity === 'CRITICAL' ? 'ALL' : 'CRITICAL')}
-                className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition ${
+                className={`h-7 px-2.5 rounded-lg border text-xs font-medium transition-colors duration-140 ${
                   filterSeverity === 'CRITICAL'
-                    ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-priority-red/20 dark:text-rose-300 dark:border-priority-red/40 shadow-xs'
-                    : 'bg-white dark:bg-surface-inset text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-red-500/10 text-semantic-negative-light dark:text-semantic-negative-dark border-semantic-negative-light/30 dark:border-semantic-negative-dark/30'
+                    : 'surface-card text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
                 }`}
               >
-                🔥 Critical Fires Only
+                Critical only
               </button>
 
-              {/* Platform Filters */}
-              {['chrome', 'app_store', 'play_store'].map(plat => {
-                const labels = {
-                  chrome: '🌐 Chrome Store',
-                  app_store: '🍎 iOS',
-                  play_store: '🤖 Play Store'
+              {/* Platform filters */}
+              {(() => {
+                const platformMap = {
+                  chrome: { label: 'Chrome', match: 'chrome' },
+                  app_store: { label: 'iOS', match: 'app_store|ios|apple' },
+                  play_store: { label: 'Android', match: 'play|android' },
+                  firefox_addons: { label: 'Firefox', match: 'firefox' },
+                  edge_addons: { label: 'Edge', match: 'edge' },
+                  product_hunt: { label: 'Product Hunt', match: 'product_hunt|producthunt' },
+                  trustpilot: { label: 'Trustpilot', match: 'trustpilot' }
                 };
-                const isActive = filterPlatform === plat;
-                return (
-                  <button
-                    key={plat}
-                    onClick={() => setFilterPlatform(isActive ? 'ALL' : plat)}
-                    className={`px-2.5 py-1.5 rounded-xl border text-xs font-medium transition ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-priority-blue/20 dark:text-priority-blue dark:border-priority-blue/40 font-semibold shadow-xs'
-                        : 'bg-white dark:bg-surface-inset text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    {labels[plat]}
-                  </button>
-                );
-              })}
 
-              {/* 1-Click CSV Export */}
+                const activeKeys = Object.keys(platformMap).filter(k => {
+                  const pattern = new RegExp(platformMap[k].match, 'i');
+                  return (sources && sources.some(s => pattern.test(s.platform || ''))) ||
+                         (userBugs && userBugs.some(b => pattern.test(b.platform || '')));
+                });
+
+                const displayKeys = activeKeys.length > 0 ? activeKeys.slice(0, 4) : ['chrome', 'app_store', 'play_store'];
+
+                return displayKeys.map(plat => {
+                  const info = platformMap[plat] || { label: plat };
+                  const isActive = filterPlatform === plat;
+                  return (
+                    <button
+                      key={plat}
+                      onClick={() => setFilterPlatform(isActive ? 'ALL' : plat)}
+                      className={`h-7 px-2.5 rounded-lg border text-xs transition-colors duration-140 ${
+                        isActive
+                          ? 'bg-surface-raised-light dark:bg-surface-raised-dark text-ink-primary-light dark:text-ink-primary-dark font-medium border-surface-border-light dark:border-surface-border-dark'
+                          : 'surface-card text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
+                      }`}
+                    >
+                      {info.label}
+                    </button>
+                  );
+                });
+              })()}
+
+              {/* CSV Export */}
               <button
                 onClick={handleExportCSV}
-                className="px-2.5 py-1.5 rounded-xl border text-xs font-semibold bg-white hover:bg-slate-50 dark:bg-surface-inset dark:hover:bg-surface-elevated text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10 flex items-center gap-1.5 transition shadow-xs"
+                className="h-7 px-2.5 rounded-lg surface-card text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark flex items-center gap-1.5 transition-colors duration-140"
                 title="Export filtered backlog to CSV"
               >
-                <Download size={13} className="text-emerald-600 dark:text-accent-mint" />
+                <Download size={12} strokeWidth={1.5} />
                 <span>Export CSV</span>
               </button>
 
@@ -395,80 +434,75 @@ export default function App() {
 
           {/* VIEW 1: DUAL BACKLOG VIEW */}
           {currentView === 'dual' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
               
-              {/* COLUMN 1: MY BUGS (Internal Backlog) */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-surface-border pb-3">
+              {/* COLUMN 1: INTERNAL BACKLOG */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between pb-2 border-b border-surface-border-light dark:border-surface-border-dark">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-priority-blue shadow-xs" />
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 font-mono">
-                      🛠️ My Bugs to Fix (Internal)
+                    <span className="w-2 h-2 rounded-full bg-ink-muted-light dark:bg-ink-muted-dark" />
+                    <h2 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">
+                      Internal issues
                     </h2>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-blue-700 dark:bg-priority-blue/10 dark:text-priority-blue border border-blue-200 dark:border-priority-blue/20">
+                    <span className="text-[11px] font-mono tabular text-ink-muted-light dark:text-ink-muted-dark">
                       {filteredInternal.length}
                     </span>
                   </div>
                   <button
                     onClick={() => setIsAddBugOpen(true)}
-                    className="text-xs text-blue-600 dark:text-priority-blue hover:underline font-semibold flex items-center gap-1 font-mono transition"
+                    className="text-xs text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark font-medium flex items-center gap-1 transition-colors duration-140"
                   >
-                    <Plus size={13} /> Add
+                    <Plus size={12} strokeWidth={1.5} />
+                    <span>Add</span>
                   </button>
                 </div>
 
                 {loading ? (
-                  <div className="py-12 text-center text-slate-400 dark:text-slate-500 font-mono text-xs">Loading internal issues...</div>
+                  <div className="py-12 text-center text-ink-muted-light dark:text-ink-muted-dark font-mono text-xs">
+                    Loading issues...
+                  </div>
                 ) : filteredInternal.length === 0 ? (
-                  <div className="p-8 text-center glass-panel rounded-2xl text-slate-400 dark:text-slate-500 text-xs font-mono">
-                    No internal bugs match current filters.
+                  <div className="p-8 text-center surface-card rounded-xl text-ink-muted-light dark:text-ink-muted-dark text-xs">
+                    No internal issues match the current filter.
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {filteredInternal.map(bug => {
-                      const prio = priorityChevrons[bug.severity] || priorityChevrons.MEDIUM;
+                      const sev = severityLabels[bug.severity] || severityLabels.MEDIUM;
                       return (
                         <div
                           key={bug.id}
                           onClick={() => setSelectedBug(bug)}
-                          className="p-4 rounded-2xl glass-card transition cursor-pointer group space-y-3"
+                          className="p-3.5 rounded-xl surface-card cursor-pointer group space-y-2.5"
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <div className="space-y-1">
+                            <div className="space-y-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap text-xs">
-                                <span className="text-blue-600 dark:text-priority-blue font-mono font-bold text-[11px]">
+                                <span className="text-ink-muted-light dark:text-ink-muted-dark font-mono text-[11px] tabular">
                                   BL-INT-{bug.id.slice(-3)}
                                 </span>
-                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${prio.color}`}>
-                                  {prio.icon} {prio.label}
+                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${sev.color}`}>
+                                  {sev.label}
                                 </span>
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold font-mono ${
-                                  bug.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-accent-mint/10 dark:text-accent-mint dark:border-accent-mint/20' :
-                                  bug.status === 'IN_PROGRESS' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-priority-amber/10 dark:text-priority-amber dark:border-priority-amber/20' : 'bg-slate-100 text-slate-600 dark:bg-surface-inset dark:text-slate-400 border border-slate-200 dark:border-white/5'
-                                }`}>
-                                  {bug.status.replace('_', ' ')}
+                                <span className="text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark">
+                                  {bug.status.replace('_', ' ').toLowerCase()}
                                 </span>
                                 {bug.tags && bug.tags.map(t => (
-                                  <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-surface-inset text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 font-mono">
-                                    #{t}
+                                  <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-surface-raised-light dark:bg-surface-raised-dark text-ink-muted-light dark:text-ink-muted-dark font-mono">
+                                    {t}
                                   </span>
                                 ))}
                               </div>
-                              <h3 className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-priority-blue transition leading-snug">
+                              <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark group-hover:text-accent transition-colors duration-140 leading-snug">
                                 {bug.title}
                               </h3>
                             </div>
-                            <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-600 dark:group-hover:text-priority-blue group-hover:translate-x-0.5 transition shrink-0" />
+                            <ChevronRight size={14} strokeWidth={1.5} className="text-ink-muted-light dark:text-ink-muted-dark group-hover:text-ink-primary-light dark:group-hover:text-ink-primary-dark transition-colors shrink-0 mt-0.5" />
                           </div>
 
-                          <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 font-mono glass-inset p-2.5 rounded-xl">
+                          <p className="text-[11px] text-ink-secondary-light dark:text-ink-secondary-dark line-clamp-2 surface-inset p-2.5 rounded-lg leading-relaxed">
                             {bug.technicalSummary}
                           </p>
-
-                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 font-mono">
-                            <span>Internal Issue</span>
-                            <span className="text-blue-600 dark:text-priority-blue group-hover:underline font-medium">Details →</span>
-                          </div>
                         </div>
                       );
                     })}
@@ -476,111 +510,102 @@ export default function App() {
                 )}
               </div>
 
-              {/* COLUMN 2: USER-REPORTED BUGS (AI Store Triage) */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-surface-border pb-3">
+              {/* COLUMN 2: CUSTOMER ISSUES */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between pb-2 border-b border-surface-border-light dark:border-surface-border-dark">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-accent-mint shadow-xs animate-pulse" />
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 font-mono">
-                      👥 User Bugs (AI Store Triage)
+                    <span className="w-2 h-2 rounded-full bg-accent" />
+                    <h2 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">
+                      Customer issues
                     </h2>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 dark:bg-accent-mint/10 dark:text-accent-mint border border-emerald-200 dark:border-accent-mint/20">
+                    <span className="text-[11px] font-mono tabular text-ink-muted-light dark:text-ink-muted-dark">
                       {filteredUser.length}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                    1-Click Verbatim Proof
+                  <span className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">
+                    Citations attached
                   </span>
                 </div>
 
                 {loading ? (
-                  <div className="py-12 text-center text-slate-400 dark:text-slate-500 font-mono text-xs">Triaging store reviews...</div>
+                  <div className="py-12 text-center text-ink-muted-light dark:text-ink-muted-dark font-mono text-xs">
+                    Loading customer issues...
+                  </div>
                 ) : filteredUser.length === 0 ? (
-                  <div className="p-8 text-center glass-panel rounded-2xl text-slate-500 text-xs font-mono">
-                    No user bugs match current filters.
+                  <div className="p-8 text-center surface-card rounded-xl text-ink-muted-light dark:text-ink-muted-dark text-xs">
+                    No customer issues match the current filter.
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {filteredUser.map(bug => {
-                      const prio = priorityChevrons[bug.severity] || priorityChevrons.MEDIUM;
-                      const platformNames = {
-                        chrome_webstore: '🌐 Chrome',
-                        app_store: '🍎 iOS',
-                        play_store: '🤖 Play Store'
-                      };
-
+                      const sev = severityLabels[bug.severity] || severityLabels.MEDIUM;
                       return (
                         <div
                           key={bug.id}
                           onClick={() => setSelectedBug(bug)}
-                          className="p-4 rounded-2xl glass-card transition cursor-pointer group space-y-3"
+                          className="p-3.5 rounded-xl surface-card cursor-pointer group space-y-2.5"
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <div className="space-y-1">
+                            <div className="space-y-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap text-xs">
-                                <span className="text-emerald-700 dark:text-accent-mint font-mono font-bold text-[11px]">
+                                <span className="text-accent font-mono text-[11px] tabular font-medium">
                                   BL-USR-{bug.id.slice(-3)}
                                 </span>
                                 
-                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${prio.color}`}>
-                                  {prio.icon} {prio.label}
+                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${sev.color}`}>
+                                  {sev.label}
                                 </span>
 
                                 <button
                                   onClick={(e) => handleUpvoteBug(e, bug)}
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:hover:bg-rose-500/25 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 flex items-center gap-1 font-mono transition"
-                                  title="Upvote: +1 User Reported "
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-mono tabular text-ink-secondary-light dark:text-ink-secondary-dark surface-raised hover:text-ink-primary-light dark:hover:text-ink-primary-dark transition-colors duration-140"
+                                  title="Add +1 affected report"
                                 >
-                                  🔥 {bug.reportCount || 1} Reports <span className="text-[9px] font-bold text-rose-500 hover:scale-110 ml-0.5">+1</span>
+                                  {bug.reportCount || 1} reports +
                                 </button>
 
-                                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-surface-inset text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/5">
-                                  {platformNames[bug.platform] || 'Store Review'}
-                                </span>
+                                {bug.platform && (
+                                  <span className="text-[10px] text-ink-muted-light dark:text-ink-muted-dark font-mono">
+                                    {bug.platform.replace('_', ' ')}
+                                  </span>
+                                )}
 
                                 {bug.actionabilityScore && (
-                                  <span className="text-[10px] font-bold text-amber-700 dark:text-accent-gold bg-amber-50 dark:bg-accent-gold/10 px-1.5 py-0.5 rounded border border-amber-200 dark:border-accent-gold/25 font-mono">
-                                    ⭐ {bug.actionabilityScore}/5
+                                  <span className="text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark">
+                                    {bug.actionabilityScore}/5
                                   </span>
                                 )}
                               </div>
 
-                              <h3 className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-accent-mint transition leading-snug">
+                              <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark group-hover:text-accent transition-colors duration-140 leading-snug">
                                 {bug.title}
                               </h3>
                             </div>
 
-                            <ChevronRight size={16} className="text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-accent-mint group-hover:translate-x-0.5 transition shrink-0" />
+                            <ChevronRight size={14} strokeWidth={1.5} className="text-ink-muted-light dark:text-ink-muted-dark group-hover:text-ink-primary-light dark:group-hover:text-ink-primary-dark transition-colors shrink-0 mt-0.5" />
                           </div>
 
-                          {/* Technical Summary preview */}
-                          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 font-mono glass-inset p-2.5 rounded-xl">
+                          <p className="text-[11px] text-ink-secondary-light dark:text-ink-secondary-dark line-clamp-2 surface-inset p-2.5 rounded-lg leading-relaxed">
                             {bug.technicalSummary}
                           </p>
 
-                          {/* Footer Quick Actions */}
+                          {/* Footer */}
                           <div className="flex items-center justify-between text-[11px] pt-1">
-                            <div className="flex items-center gap-2">
-                              {bug.affectedVersions && bug.affectedVersions.length > 0 && (
-                                <span className="text-slate-700 dark:text-slate-300 font-mono text-[10px] bg-slate-100 dark:bg-surface-inset border border-slate-200 dark:border-white/5 px-2 py-0.5 rounded">
-                                  {bug.affectedVersions.join(', ')}
-                                </span>
-                              )}
-                              <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
-                                {bug.reviewIds?.length || 1} verbatim quote(s)
-                              </span>
-                            </div>
+                            <span className="text-ink-muted-light dark:text-ink-muted-dark font-mono text-[10px]">
+                              {bug.reviewIds?.length || 1} citation(s)
+                            </span>
 
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => handleQuickCopyPrompt(e, bug)}
-                                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-600 hover:text-white dark:bg-surface-elevated dark:hover:bg-accent-mint dark:hover:text-slate-950 text-slate-700 dark:text-slate-300 transition flex items-center gap-1 text-[11px] font-bold font-mono border border-slate-200 dark:border-white/5 shadow-xs"
+                                className="h-6 px-2 rounded surface-raised text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark transition-colors duration-140 flex items-center gap-1 text-[10px] font-mono"
                                 title="Copy prompt for Cursor / Claude"
                               >
-                                <Terminal size={11} /> Prompt
+                                <Terminal size={10} strokeWidth={1.5} />
+                                <span>Prompt</span>
                               </button>
-                              <span className="text-emerald-600 dark:text-accent-mint font-medium group-hover:underline">
-                                Proof →
+                              <span className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark group-hover:text-accent transition-colors duration-140">
+                                Citations →
                               </span>
                             </div>
                           </div>
@@ -650,12 +675,12 @@ export default function App() {
         onSourceAdded={(res) => {
           loadData();
           setNotification({
-            message: `Scraped ${res.scrapedCount} reviews! Extracted ${res.newBugsCount} bugs (${res.mergedCount} deduplicated).`,
+            message: `Scraped ${res.scrapedCount} reviews (${res.newBugsCount} issues, ${res.mergedCount} deduplicated)`,
             reviewText: "Initial batch processed successfully.",
             author: "System",
             platform: res.source.title
           });
-          setTimeout(() => setNotification(null), 6000);
+          setTimeout(() => setNotification(null), 5000);
         }}
       />
 
@@ -666,26 +691,17 @@ export default function App() {
         onBugAdded={() => loadData()}
       />
 
-      {/* Floating Dogfood / In-App Review Pill */}
+      {/* Pinned Dogfood Action Pill */}
       <button
         onClick={() => setIsFeedbackOpen(true)}
-        className="fixed bottom-6 right-6 z-40 px-4 py-2.5 rounded-2xl bg-white dark:bg-[#101522] text-slate-800 dark:text-white border border-slate-200 dark:border-white/10 hover:border-emerald-500 dark:hover:border-accent-mint shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 flex items-center gap-2.5 group"
-        title="Submit an in-app review or report an issue on BugListy itself (In-App Dogfooding)"
+        className="fixed bottom-5 right-5 z-40 h-8 px-3 rounded-lg surface-card text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark flex items-center gap-2 transition-colors duration-140 shadow-sm"
+        title="Submit an in-app review or report an issue on BugListy"
       >
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-        </span>
-        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-accent-mint transition flex items-center gap-1.5">
-          <MessageSquarePlus size={14} className="text-emerald-600 dark:text-accent-mint" />
-          Review BugListy
-        </span>
-        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-accent-mint border border-emerald-200 dark:border-emerald-500/20">
-          Dogfood
-        </span>
+        <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+        <span>Feedback</span>
       </button>
 
-      {/* In-App Dogfood Feedback Modal */}
+      {/* In-App Feedback Modal */}
       <FeedbackWidgetModal
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}
@@ -693,19 +709,18 @@ export default function App() {
           loadData();
           setNotification({
             message: res.triageResult?.isDuplicate
-              ? `⚡ AI clustered your feedback into: "${res.affectedBug?.title}"`
+              ? `Clustered feedback into "${res.affectedBug?.title}"`
               : res.affectedBug
-              ? `✨ In-App bug triaged into User Bugs: "${res.affectedBug?.title}"`
-              : `💬 In-App Review ingested into Live Review Stream!`,
+              ? `Created customer issue: "${res.affectedBug?.title}"`
+              : `Review ingested into stream`,
             reviewText: res.review?.reviewText || '',
             author: res.review?.authorName || 'BugListy User',
-            platform: 'BugListy (In-App)'
+            platform: 'In-app'
           });
-          setTimeout(() => setNotification(null), 6000);
+          setTimeout(() => setNotification(null), 5000);
         }}
       />
 
     </div>
   );
 }
-

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, MessageSquarePlus, Star, Sparkles, CheckCircle2, 
-  AlertTriangle, Bug, Lightbulb, Heart, Copy, Check, 
-  Terminal, Monitor, ArrowRight, Loader2, Info, ChevronDown, ChevronUp, FlaskConical
+  X, Star, CheckCircle2, Copy, Check, 
+  Terminal, Monitor, ArrowRight, Loader2, ChevronDown, ChevronUp
 } from 'lucide-react';
 
-// Global error listener buffer
 let globalCapturedLogs = [
   `[${new Date().toLocaleTimeString()}] INFO: Client initialized on ${window?.location?.origin || 'http://localhost:3001'}`,
 ];
@@ -29,23 +27,19 @@ if (typeof window !== 'undefined' && !window.__buglisty_listener_installed) {
 export default function FeedbackWidgetModal({ isOpen, onClose, onFeedbackSubmitted }) {
   const [category, setCategory] = useState('bug'); // 'bug' | 'feature' | 'general'
   const [rating, setRating] = useState(5);
-  const [hoverRating, setHoverRating] = useState(0);
   const [authorName, setAuthorName] = useState('');
   const [reviewText, setReviewText] = useState('');
   const [includeDeviceInfo, setIncludeDeviceInfo] = useState(true);
   const [deviceInfoStr, setDeviceInfoStr] = useState('');
   
-  // DevLogs state (Console & Network error auto-recorder)
   const [devLogs, setDevLogs] = useState([]);
   const [includeDevLogs, setIncludeDevLogs] = useState(true);
   const [showLogsDetails, setShowLogsDetails] = useState(false);
-  const [testErrorTriggered, setTestErrorTriggered] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
 
-  // Auto-detect client environment & sync logs
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const ua = navigator.userAgent;
@@ -65,32 +59,6 @@ export default function FeedbackWidgetModal({ isOpen, onClose, onFeedbackSubmitt
   }, [isOpen]);
 
   if (!isOpen) return null;
-
-  const handleRatingClick = (r) => {
-    setRating(r);
-  };
-
-  const getRatingLabel = (val) => {
-    switch (val) {
-      case 1: return "1★ - Critical Issue / Broken Feature";
-      case 2: return "2★ - Frustrating / Needs Work";
-      case 3: return "3★ - Average / Functional";
-      case 4: return "4★ - Great / Very Good";
-      case 5: return "5★ - Excellent / Loving it!";
-      default: return "";
-    }
-  };
-
-  // Trigger test console error so user can test the capture live!
-  const handleSimulateError = () => {
-    const errorMsg = `TypeError: Connection reset during sync alarm at syncWorker.js:142 (simulated test error)`;
-    console.error(errorMsg);
-    setDevLogs([...globalCapturedLogs]);
-    setTestErrorTriggered(true);
-    if (rating > 2) setRating(1);
-    if (!reviewText) setReviewText("Encountered connection drop error during sync.");
-    setTimeout(() => setTestErrorTriggered(false), 3000);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -122,7 +90,6 @@ export default function FeedbackWidgetModal({ isOpen, onClose, onFeedbackSubmitt
       }
     } catch (err) {
       console.error("Feedback submission error:", err);
-      alert("Failed to submit review. Check console for details.");
     } finally {
       setSubmitting(false);
     }
@@ -131,17 +98,15 @@ export default function FeedbackWidgetModal({ isOpen, onClose, onFeedbackSubmitt
   const handleCopyPrompt = () => {
     if (!result?.affectedBug) return;
     const bug = result.affectedBug;
-    const prompt = `CRITICAL USER BUG FIX REQUEST
-Bug Title: ${bug.title}
+    const prompt = `USER DEFECT REPORT
+Title: ${bug.title}
 Severity: ${bug.severity || 'HIGH'}
-Platform: BugListy (In-App)
-Description: ${bug.technicalSummary || bug.title}
-User Verbatim: "${result.review?.reviewText || ''}"
-Client Environment: ${result.review?.deviceInfo || 'Browser'}
+Platform: BugListy (In-app)
+Summary: ${bug.technicalSummary || bug.title}
+User verbatim: "${result.review?.reviewText || ''}"
+Environment: ${result.review?.deviceInfo || 'Browser'}
 Captured DevLogs:
-${result.review?.devLogs || 'No console errors captured'}
-
-Please inspect the codebase and resolve this issue.`;
+${result.review?.devLogs || 'No console errors captured'}`;
 
     navigator.clipboard.writeText(prompt);
     setCopiedPrompt(true);
@@ -158,357 +123,222 @@ Please inspect the codebase and resolve this issue.`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
       <div 
-        className="w-full max-w-lg bg-white dark:bg-sidebar border border-slate-200 dark:border-surface-border rounded-2xl shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-150 transition-colors"
+        className="w-full max-w-lg bg-sidebar-light dark:bg-sidebar-dark border border-surface-border-light dark:border-surface-border-dark rounded-xl shadow-lg p-5 space-y-4"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-surface-border pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-accent-mint">
-              <MessageSquarePlus size={20} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">Review & Dogfood BugListy</h2>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-accent-mint/20 text-emerald-800 dark:text-accent-mint font-semibold">
-                  Live AI Dogfooding
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Share a review or report a bug. It gets triaged live by our own AI engine!
-              </p>
-            </div>
+        <div className="flex items-center justify-between border-b border-surface-border-light dark:border-surface-border-dark pb-3">
+          <div>
+            <h2 className="text-sm font-medium text-ink-primary-light dark:text-ink-primary-dark">
+              In-app feedback
+            </h2>
+            <p className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">
+              Submit an issue or suggestion to test the live triage pipeline
+            </p>
           </div>
           <button 
             onClick={handleResetAndClose} 
-            className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg transition"
+            className="w-7 h-7 flex items-center justify-center text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark rounded-md hover:bg-surface-raised-light dark:hover:bg-surface-raised-dark transition-colors"
           >
-            <X size={18} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
-        {/* If successfully submitted, show AI Triage Result */}
+        {/* Triage result */}
         {result ? (
-          <div className="space-y-4 py-2 animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 space-y-3">
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-accent-mint">
-                <CheckCircle2 size={18} className="shrink-0" />
-                <span className="text-sm font-bold">Feedback Successfully Ingested!</span>
+          <div className="space-y-3 py-1">
+            <div className="p-3.5 rounded-lg surface-inset space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">
+                <CheckCircle2 size={15} className="text-accent" />
+                <span>Feedback processed</span>
               </div>
 
               {result.affectedBug ? (
-                <div className="space-y-2 bg-white dark:bg-sidebar p-3.5 rounded-xl border border-emerald-200/60 dark:border-emerald-500/20 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                      {result.triageResult?.isDuplicate ? '⚡ Clustered Into Existing Issue' : '✨ New Issue Created in User Bugs'}
+                <div className="space-y-1.5 surface-card p-3 rounded-lg text-xs">
+                  <div className="flex items-center justify-between font-mono text-[10px] text-ink-muted-light dark:text-ink-muted-dark">
+                    <span>
+                      {result.triageResult?.isDuplicate ? 'Clustered into existing issue' : 'Created new customer issue'}
                     </span>
-                    <span className="px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-rose-50 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30">
+                    <span className="text-semantic-negative-light dark:text-semantic-negative-dark">
                       {result.affectedBug.severity || 'HIGH'}
                     </span>
                   </div>
-                  <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+                  <h4 className="font-medium text-ink-primary-light dark:text-ink-primary-dark text-xs">
                     {result.affectedBug.title}
                   </h4>
-                  {result.affectedBug.actionabilityScore && (
-                    <div className="flex items-center gap-2 pt-1 text-slate-600 dark:text-slate-300">
-                      <span className="font-semibold text-emerald-600 dark:text-accent-mint">
-                        🎯 Actionability: {result.affectedBug.actionabilityScore}/5
-                      </span>
-                      <span>•</span>
-                      <span className="text-slate-500">Auto-generated Cursor / Claude prompt ready</span>
-                    </div>
-                  )}
-                  {result.review?.devLogs && (
-                    <div className="p-2 rounded bg-slate-950 text-emerald-400 font-mono text-[10px] border border-emerald-500/20">
-                      ✓ Attached DevLogs: {result.review.devLogs.split('\n').length} console events captured
-                    </div>
-                  )}
                 </div>
               ) : (
-                <div className="bg-white dark:bg-sidebar p-3 rounded-xl border border-emerald-200/60 dark:border-emerald-500/20 text-xs text-slate-600 dark:text-slate-300">
-                  <p>Your review was added directly to the <span className="font-semibold text-slate-900 dark:text-white">Live Store Review Stream</span>.</p>
+                <div className="surface-card p-3 rounded-lg text-xs text-ink-secondary-light dark:text-ink-secondary-dark">
+                  Feedback recorded to live stream.
                 </div>
               )}
             </div>
 
-            {/* Quick Prompt Copy if bug created */}
             {result.affectedBug && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Terminal size={14} className="text-emerald-600 dark:text-accent-mint" />
-                    AI Cursor Prompt Ready for Developers
+                  <span className="text-ink-muted-light dark:text-ink-muted-dark text-[11px] font-mono">
+                    Developer prompt generated
                   </span>
                   <button
                     onClick={handleCopyPrompt}
-                    className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-accent-mint hover:underline"
+                    className="text-[11px] font-medium text-ink-primary-light dark:text-ink-primary-dark hover:text-accent flex items-center gap-1 font-mono"
                   >
-                    {copiedPrompt ? <Check size={13} /> : <Copy size={13} />}
-                    {copiedPrompt ? "Copied!" : "Copy Prompt"}
+                    {copiedPrompt ? <Check size={11} strokeWidth={2} /> : <Copy size={11} strokeWidth={1.5} />}
+                    <span>{copiedPrompt ? "Copied" : "Copy prompt"}</span>
                   </button>
-                </div>
-                <div className="p-3 bg-slate-900 text-slate-200 rounded-xl font-mono text-[11px] leading-relaxed max-h-28 overflow-y-auto border border-slate-800">
-                  CRITICAL USER BUG FIX REQUEST<br />
-                  Bug: {result.affectedBug.title}<br />
-                  Verbatim: "{result.review?.reviewText}"<br />
-                  Platform: BugListy (In-App)
-                  {result.review?.devLogs && <><br />DevLogs: Attached ✓</>}
                 </div>
               </div>
             )}
 
-            <div className="pt-2 flex items-center justify-end gap-2">
+            <div className="pt-2 flex justify-end">
               <button
                 type="button"
                 onClick={handleResetAndClose}
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-gradient-to-r dark:from-accent-mint dark:to-emerald-600 dark:hover:from-emerald-500 dark:hover:to-emerald-600 text-white dark:text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition"
+                className="h-8 px-3.5 rounded-lg bg-ink-primary-light dark:bg-ink-primary-dark text-canvas-light dark:text-canvas-dark text-xs font-medium hover:opacity-90 transition-opacity"
               >
-                <span>Done & View on Board</span>
-                <ArrowRight size={14} />
+                Close
               </button>
             </div>
           </div>
         ) : (
-          /* Form for submitting feedback */
-          <form onSubmit={handleSubmit} className="space-y-4">
+          /* Form */
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             
-            {/* Category Selector Tabs */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Feedback Type
-                </label>
-                <button
-                  type="button"
-                  onClick={handleSimulateError}
-                  className="text-[11px] font-mono text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
-                  title="Simulate a real console error to test live DevLog capture"
-                >
-                  <FlaskConical size={12} />
-                  <span>{testErrorTriggered ? "✓ Error Logged!" : "Simulate Test Error"}</span>
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setCategory('bug'); if (rating > 2) setRating(1); }}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                    category === 'bug'
-                      ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/30 shadow-xs'
-                      : 'bg-slate-50 dark:bg-surface-inset text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-surface-elevated'
-                  }`}
-                >
-                  <Bug size={14} />
-                  <span>Bug Report</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => { setCategory('feature'); if (rating < 4) setRating(4); }}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                    category === 'feature'
-                      ? 'bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-500/15 dark:text-purple-400 dark:border-purple-500/30 shadow-xs'
-                      : 'bg-slate-50 dark:bg-surface-inset text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-surface-elevated'
-                  }`}
-                >
-                  <Lightbulb size={14} />
-                  <span>Feature Idea</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setCategory('general')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                    category === 'general'
-                      ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 shadow-xs'
-                      : 'bg-slate-50 dark:bg-surface-inset text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-surface-elevated'
-                  }`}
-                >
-                  <Star size={14} />
-                  <span>Site Review</span>
-                </button>
+            {/* Category tabs */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
+                Feedback category
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: 'bug', label: 'Bug report' },
+                  { id: 'feature', label: 'Feature idea' },
+                  { id: 'general', label: 'General' }
+                ].map(cat => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => { setCategory(cat.id); if (cat.id === 'bug' && rating > 2) setRating(1); }}
+                    className={`h-7 px-2 rounded-md text-xs font-medium transition-colors ${
+                      category === cat.id
+                        ? 'surface-raised text-ink-primary-light dark:text-ink-primary-dark'
+                        : 'text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Star Rating */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Rating
-                </label>
-                <span className="text-[11px] font-mono text-amber-600 dark:text-accent-gold font-medium">
-                  {getRatingLabel(hoverRating || rating)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 p-2 rounded-xl bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/5">
-                {[1, 2, 3, 4, 5].map((star) => {
-                  const isFilled = star <= (hoverRating || rating);
-                  return (
-                    <button
-                      key={star}
-                      type="button"
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      onClick={() => handleRatingClick(star)}
-                      className="p-1 hover:scale-115 transition transform"
-                    >
-                      <Star 
-                        size={22} 
-                        className={isFilled ? "fill-amber-400 text-amber-400 drop-shadow-xs" : "text-slate-300 dark:text-slate-600"}
-                      />
-                    </button>
-                  );
-                })}
-                <span className="text-xs font-mono text-slate-400 ml-2">
-                  ({rating} / 5)
+            {/* Rating */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
+                Rating
+              </label>
+              <div className="flex items-center gap-1 p-1.5 rounded-lg surface-inset">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    className="p-1"
+                  >
+                    <Star 
+                      size={16} 
+                      strokeWidth={1.5}
+                      className={star <= rating ? "fill-amber-500 text-amber-500" : "text-surface-border-light dark:text-surface-border-dark"}
+                    />
+                  </button>
+                ))}
+                <span className="text-xs font-mono tabular text-ink-muted-light dark:text-ink-muted-dark ml-2">
+                  {rating} / 5
                 </span>
               </div>
             </div>
 
-            {/* Author Name */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Your Name / Handle <span className="text-slate-400 font-normal">(Optional)</span>
+            {/* Author */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
+                Name (optional)
               </label>
               <input
                 type="text"
-                placeholder="e.g. Maya Chen or Anonymous Dev"
+                placeholder="e.g. Maya Chen"
                 value={authorName}
                 onChange={e => setAuthorName(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition"
+                className="w-full h-8 bg-surface-inset-light dark:bg-surface-inset-dark border border-surface-border-light dark:border-surface-border-dark rounded-lg px-2.5 text-xs text-ink-primary-light dark:text-ink-primary-dark placeholder:text-ink-muted-light dark:placeholder:text-ink-muted-dark focus:outline-none"
               />
             </div>
 
-            {/* Feedback / Review Text */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {category === 'bug' ? 'Describe the Bug / Reproduction Steps' : category === 'feature' ? 'Feature Details' : 'Your Review / Thoughts'}
-                </label>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {reviewText.length} chars
-                </span>
-              </div>
+            {/* Description */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
+                {category === 'bug' ? 'Defect description' : 'Details'}
+              </label>
               <textarea
                 required
                 rows={3}
-                placeholder={
-                  category === 'bug'
-                    ? "e.g. When clicking 'Copy Prompt' on a low severity bug, the toast notification doesn't dismiss automatically..."
-                    : category === 'feature'
-                    ? "e.g. It would be amazing to filter bugs by date range or export them directly to CSV or external issue trackers..."
-                    : "e.g. BugListy solved our feedback backlog chaos in minutes! Love the dual backlog split..."
-                }
+                placeholder="Describe what occurred, expected outcome, or feature suggestion..."
                 value={reviewText}
                 onChange={e => setReviewText(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition leading-relaxed resize-none"
+                className="w-full bg-surface-inset-light dark:bg-surface-inset-dark border border-surface-border-light dark:border-surface-border-dark rounded-lg p-2.5 text-xs text-ink-primary-light dark:text-ink-primary-dark placeholder:text-ink-muted-light dark:placeholder:text-ink-muted-dark focus:outline-none resize-none leading-relaxed"
               />
             </div>
 
-            {/* Telemetry / Device Info Card */}
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/5 space-y-2">
-              <div className="flex items-start gap-2.5 text-xs">
-                <Monitor size={16} className="text-slate-400 shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px]">
-                      Auto-Captured Client Telemetry
-                    </span>
-                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-500 dark:text-slate-400 select-none">
-                      <input
-                        type="checkbox"
-                        checked={includeDeviceInfo}
-                        onChange={e => setIncludeDeviceInfo(e.target.checked)}
-                        className="rounded text-emerald-600 focus:ring-0"
-                      />
-                      <span>Attach</span>
-                    </label>
-                  </div>
-                  <p className="font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                    {deviceInfoStr || "Detecting browser environment..."}
-                  </p>
-                </div>
+            {/* Environment Telemetry */}
+            <div className="p-2.5 rounded-lg surface-inset space-y-1.5 text-xs">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-ink-muted-light dark:text-ink-muted-dark font-mono truncate">
+                  {deviceInfoStr || "Detecting environment..."}
+                </span>
+                <label className="flex items-center gap-1.5 cursor-pointer text-ink-secondary-light dark:text-ink-secondary-dark select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeDeviceInfo}
+                    onChange={e => setIncludeDeviceInfo(e.target.checked)}
+                    className="rounded text-accent focus:ring-0"
+                  />
+                  <span>Attach</span>
+                </label>
               </div>
 
-              {/* DevLogs Console Error Recorder */}
-              <div className="pt-2 border-t border-slate-200 dark:border-white/5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <div className="flex items-center gap-1.5">
-                    <Terminal size={13} className="text-emerald-600 dark:text-accent-mint" />
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      Console & DevLogs Recorder
-                    </span>
-                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-accent-mint/20 dark:text-accent-mint">
-                      {devLogs.length} events
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowLogsDetails(!showLogsDetails)}
-                      className="text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-0.5"
-                    >
-                      <span>{showLogsDetails ? "Hide" : "Inspect"}</span>
-                      {showLogsDetails ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                    </button>
-                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-500 select-none">
-                      <input
-                        type="checkbox"
-                        checked={includeDevLogs}
-                        onChange={e => setIncludeDevLogs(e.target.checked)}
-                        className="rounded text-emerald-600 focus:ring-0"
-                      />
-                      <span>Attach</span>
-                    </label>
-                  </div>
-                </div>
-
-                {showLogsDetails && (
-                  <div className="mt-2 p-2.5 rounded-lg bg-slate-950 text-slate-300 font-mono text-[10px] max-h-24 overflow-y-auto leading-relaxed border border-slate-800">
-                    {devLogs.length === 0 ? (
-                      <span className="text-slate-600">No console errors detected in current session.</span>
-                    ) : (
-                      devLogs.map((log, idx) => (
-                        <div key={idx} className={log.includes('ERROR') || log.includes('UNCAUGHT') ? "text-rose-400 font-bold" : "text-slate-400"}>
-                          {log}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-                <p className="text-[10px] text-emerald-600 dark:text-accent-mint mt-1">
-                  💡 Attaching environment telemetry & DevLogs guarantees 5/5 AI actionability.
-                </p>
+              {/* Console log recorder */}
+              <div className="flex items-center justify-between text-[11px] pt-1 border-t border-surface-border-light dark:border-surface-border-dark">
+                <span className="text-ink-muted-light dark:text-ink-muted-dark font-mono">
+                  Console logs ({devLogs.length} events)
+                </span>
+                <label className="flex items-center gap-1.5 cursor-pointer text-ink-secondary-light dark:text-ink-secondary-dark select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeDevLogs}
+                    onChange={e => setIncludeDevLogs(e.target.checked)}
+                    className="rounded text-accent focus:ring-0"
+                  />
+                  <span>Attach</span>
+                </label>
               </div>
             </div>
 
-            {/* Submit Buttons */}
-            <div className="pt-2 flex items-center justify-end gap-2.5">
+            {/* Submit */}
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-surface-border-light dark:border-surface-border-dark">
               <button
                 type="button"
                 onClick={handleResetAndClose}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-surface-elevated transition"
+                className="h-8 px-3 rounded-lg text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark hover:bg-surface-raised-light dark:hover:bg-surface-raised-dark transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting || !reviewText.trim()}
-                className="py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-gradient-to-r dark:from-accent-mint dark:to-emerald-600 dark:hover:from-emerald-500 dark:hover:to-emerald-600 text-white dark:text-slate-950 font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 dark:shadow-accent-mint/20 transition disabled:opacity-50"
+                className="h-8 px-3.5 rounded-lg bg-ink-primary-light dark:bg-ink-primary-dark text-canvas-light dark:text-canvas-dark text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5"
               >
-                {submitting ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>AI Triaging Review...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={14} />
-                    <span>Submit to AI Triage</span>
-                  </>
-                )}
+                {submitting && <Loader2 size={13} className="animate-spin" />}
+                <span>{submitting ? "Triaging..." : "Submit feedback"}</span>
               </button>
             </div>
           </form>

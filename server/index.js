@@ -31,6 +31,16 @@ app.post('/api/sources', async (req, res) => {
       chrome_webstore: "Chrome Web Store",
       app_store: "iOS App Store",
       play_store: "Google Play Store",
+      firefox_addons: "Firefox Add-ons",
+      edge_addons: "Microsoft Edge Add-ons",
+      product_hunt: "Product Hunt",
+      trustpilot: "Trustpilot",
+      g2: "G2 Crowd",
+      capterra: "Capterra",
+      steam: "Steam Community",
+      github: "GitHub Issues",
+      shopify: "Shopify App Store",
+      discord: "Discord Community",
       website: "Website / Webhook"
     };
 
@@ -377,6 +387,36 @@ app.post('/api/simulate-review', (req, res) => {
       platform: "Google Play Store",
       device: "Pixel 9 / Android 15",
       version: "v3.2.0"
+    },
+    {
+      text: "Extension toolbar button fails to open when inside Firefox Multi-Account Containers.",
+      platform: "Firefox Add-ons",
+      device: "Firefox 132 / Linux",
+      version: "v2.4.2"
+    },
+    {
+      text: "Enterprise Okta SAML SSO throws unauthorized signature validation error in US-East region.",
+      platform: "G2 Crowd",
+      device: "Okta IDP / Chrome 129",
+      version: "Enterprise 2026.2"
+    },
+    {
+      text: "Invoice billing receipt PDF export throws 500 server error in payment settings.",
+      platform: "Trustpilot",
+      device: "Web App / Chrome 129",
+      version: "Cloud SaaS"
+    },
+    {
+      text: "TypeError: Cannot read properties of undefined (reading 'token') in CLI daemon.",
+      platform: "GitHub Issues",
+      device: "Node.js v22.11 / Linux x64",
+      version: "main@b72a91c"
+    },
+    {
+      text: "DirectX 12 crashes on launch with DXGI_ERROR_DEVICE_REMOVED on RTX 4080.",
+      platform: "Steam Community",
+      device: "RTX 4080 / Windows 11",
+      version: "v1.4.0"
     }
   ];
 

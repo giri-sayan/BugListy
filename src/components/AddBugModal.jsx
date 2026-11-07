@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { X, Wrench, Plus, Loader2 } from 'lucide-react';
+import { X, Loader2, Plus } from 'lucide-react';
 
 export default function AddBugModal({ isOpen, onClose, onBugAdded }) {
   const [title, setTitle] = useState('');
   const [severity, setSeverity] = useState('MEDIUM');
   const [technicalSummary, setTechnicalSummary] = useState('');
-  const [tags, setTags] = useState('Frontend, Tech Debt');
+  const [tags, setTags] = useState('Frontend, Tech debt');
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -40,100 +40,102 @@ export default function AddBugModal({ isOpen, onClose, onBugAdded }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
       <div 
-        className="w-full max-w-lg bg-white dark:bg-sidebar border border-slate-200 dark:border-surface-border rounded-2xl shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-150"
+        className="w-full max-w-md bg-sidebar-light dark:bg-sidebar-dark border border-surface-border-light dark:border-surface-border-dark rounded-xl shadow-lg p-5 space-y-4"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-surface-border pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <Wrench size={18} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Add to "My Bugs"</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Track an internal bug or edge case you found</p>
-            </div>
+        <div className="flex items-center justify-between border-b border-surface-border-light dark:border-surface-border-dark pb-3">
+          <div>
+            <h2 className="text-sm font-medium text-ink-primary-light dark:text-ink-primary-dark">
+              Create internal issue
+            </h2>
+            <p className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">
+              Log an internal bug, defect, or technical debt item
+            </p>
           </div>
-          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg">
-            <X size={18} />
+          <button 
+            onClick={onClose} 
+            className="w-7 h-7 flex items-center justify-center text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark rounded-md hover:bg-surface-raised-light dark:hover:bg-surface-raised-dark transition-colors"
+          >
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Bug Title
+        <form onSubmit={handleSubmit} className="space-y-3.5">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
+              Title
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. Memory leak when reopening popup repeatedly"
+              placeholder="e.g. Memory leak during tab reload cycle"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition"
+              className="w-full h-8 bg-surface-inset-light dark:bg-surface-inset-dark border border-surface-border-light dark:border-surface-border-dark rounded-lg px-2.5 text-xs text-ink-primary-light dark:text-ink-primary-dark placeholder:text-ink-muted-light dark:placeholder:text-ink-muted-dark focus:outline-none"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
                 Severity
               </label>
               <select
                 value={severity}
                 onChange={e => setSeverity(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition font-mono"
+                className="w-full h-8 bg-surface-inset-light dark:bg-surface-inset-dark border border-surface-border-light dark:border-surface-border-dark rounded-lg px-2 text-xs text-ink-primary-light dark:text-ink-primary-dark focus:outline-none font-mono"
               >
-                <option value="CRITICAL">Critical (Crash/Data loss)</option>
-                <option value="HIGH">High (Major feature broken)</option>
-                <option value="MEDIUM">Medium (Normal defect)</option>
-                <option value="LOW">Low (Cosmetic/Typo)</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
               </select>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Tags (Comma separated)
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
+                Tags
               </label>
               <input
                 type="text"
-                placeholder="UI, Performance, Chrome MV3"
+                placeholder="Frontend, Tech debt"
                 value={tags}
                 onChange={e => setTags(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition font-mono"
+                className="w-full h-8 bg-surface-inset-light dark:bg-surface-inset-dark border border-surface-border-light dark:border-surface-border-dark rounded-lg px-2.5 text-xs text-ink-primary-light dark:text-ink-primary-dark placeholder:text-ink-muted-light dark:placeholder:text-ink-muted-dark focus:outline-none font-mono"
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Technical Details / Repro Notes
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark">
+              Technical summary
             </label>
             <textarea
-              rows={4}
+              rows={3}
               placeholder="Describe symptoms, relevant files, or reproduction steps..."
               value={technicalSummary}
               onChange={e => setTechnicalSummary(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-surface-inset border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm text-slate-900 dark:text-white font-mono placeholder-slate-400 focus:outline-none focus:border-blue-500 transition"
+              className="w-full bg-surface-inset-light dark:bg-surface-inset-dark border border-surface-border-light dark:border-surface-border-dark rounded-lg p-2.5 text-xs text-ink-primary-light dark:text-ink-primary-dark font-mono placeholder:text-ink-muted-light dark:placeholder:text-ink-muted-dark focus:outline-none resize-none leading-relaxed"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-surface-border">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-surface-border-light dark:border-surface-border-dark">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-surface-elevated transition"
+              className="h-8 px-3 rounded-lg text-xs font-medium text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark hover:bg-surface-raised-light dark:hover:bg-surface-raised-dark transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !title}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-md shadow-blue-600/20 disabled:opacity-50 transition"
+              className="h-8 px-3.5 rounded-lg text-xs font-medium bg-ink-primary-light dark:bg-ink-primary-dark text-canvas-light dark:text-canvas-dark hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5"
             >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-              {loading ? "Adding..." : "Add to My Bugs"}
+              {loading && <Loader2 size={13} className="animate-spin" />}
+              <span>{loading ? "Adding..." : "Create issue"}</span>
             </button>
           </div>
         </form>
