@@ -38,8 +38,11 @@ Most feedback tools are either read-only store analytics dashboards ($50–$300/
 * Click any user bug to open a side drawer showing exact customer quotes, star ratings, reviewer handles, and direct links to live store listings.
 * Displays AI technical diagnosis and attached DevLogs.
 
-### 5. 🤖 AI Cursor & Claude Prompt Generator
-* Automatically transforms emotional user complaints into structured, developer-ready code prompts (`CRITICAL USER BUG FIX REQUEST`) with 1-click copy for Cursor Composer and Claude Code.
+### 5. 🤖 Claude Skills Studio & AI Prompt Generator (Powered by jeffallan/claude-skills)
+* **Autonomous Skill Routing:** Automatically maps customer bug reports to the exact Claude Skill persona from [jeffallan/claude-skills](https://github.com/jeffallan/claude-skills) (e.g. `⚡ Debugging Wizard`, `🍏 Swift Expert`, `🤖 Kotlin Specialist`, `⚛️ React Expert`, `🛡️ Secure Code Guardian`, `⚡ Performance Optimization`).
+* **Progressive Disclosure Prompts:** Context-engineers user complaints into surgical, reproducible debugging briefs featuring testable hypotheses, verbatim citations, browser DevLogs, and zero-regression `@test-master` test suites.
+* **1-Click Claude Code CLI Execution:** Generate ready-to-run terminal commands (`claude "/debugging-wizard Fix customer bug..."`) or Cursor Composer prompts with 1 click.
+* **Multi-Skill Workflow Visualizer:** Run proven 4-stage engineering workflows (`Debugging Wizard → Platform Specialist → Test Master → Code Reviewer`).
 
 ### 6. 📈 Store Rating Recovery & Fix ROI Simulator
 * Interactive predictive model on the Telemetry dashboard.

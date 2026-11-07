@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   LayoutGrid, Kanban, Radio, BarChart3, Globe,
-  Plus, ExternalLink, Star, Sun, Moon, MessageSquarePlus, RefreshCw
+  Plus, ExternalLink, Star, Sun, Moon, MessageSquarePlus, RefreshCw, Sparkles
 } from 'lucide-react';
 import BugListLogo from './BugListLogo';
 
@@ -24,6 +24,7 @@ export default function Sidebar({
 
   const navItems = [
     { id: 'dual', label: 'Dual backlog', icon: LayoutGrid, count: analytics?.totalBugs },
+    { id: 'skills', label: 'Claude Skills', icon: Sparkles, count: '67', highlight: true },
     { id: 'kanban', label: 'Kanban', icon: Kanban },
     { id: 'stream', label: 'Review stream', icon: Radio, count: analytics?.totalReviews },
     { id: 'telemetry', label: 'Store telemetry', icon: BarChart3 },
@@ -103,7 +104,9 @@ export default function Sidebar({
               </div>
               {item.count !== undefined && (
                 <span className={`text-[11px] font-mono tabular px-1.5 py-0.5 rounded ${
-                  isActive 
+                  item.highlight
+                    ? 'bg-accent/15 text-accent font-medium'
+                    : isActive 
                     ? 'text-accent font-medium' 
                     : 'text-ink-muted-light dark:text-ink-muted-dark'
                 }`}>

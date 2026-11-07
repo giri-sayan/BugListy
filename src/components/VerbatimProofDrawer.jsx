@@ -1,19 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, ExternalLink, Copy, Check, Star, 
-  Terminal, MessageSquare, Cpu, Send, CheckCircle2
+  Terminal, MessageSquare, Cpu, Send, CheckCircle2,
+  Sparkles, Smartphone, Code, Layers, ShieldAlert, Zap, ArrowRight
 } from 'lucide-react';
+import { CLAUDE_SKILLS, getRecommendedSkillForBug } from '../data/claudeSkillsData';
 
 export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allBugs }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('reviews'); // 'reviews' | 'prompt' | 'reply'
-  const [promptText, setPromptText] = useState('');
+  const [selectedSkillId, setSelectedSkillId] = useState('debugging-wizard');
+  const [promptFormat, setPromptFormat] = useState('cli'); // 'cli' | 'prompt' | 'minimal'
+  const [promptData, setPromptData] = useState(null);
+  const [loadingPrompt, setLoadingPrompt] = useState(false);
   const [copied, setCopied] = useState(false);
   const [storeReply, setStoreReply] = useState('');
   const [copiedReply, setCopiedReply] = useState(false);
   const [replyTone, setReplyTone] = useState('friendly'); // 'friendly' | 'formal' | 'quick'
   const [dispatchedMap, setDispatchedMap] = useState({});
+
+  useEffect(() => {
+    if (!bug) return;
+    const rec = getRecommendedSkillForBug(bug);
+    setSelectedSkillId(rec.id);
+  }, [bug]);
 
   useEffect(() => {
     if (!bug) return;
@@ -29,13 +40,23 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
         setLoading(false);
       });
 
-    fetch(`/api/bugs/${bug.id}/cursor-prompt`)
-      .then(res => res.json())
-      .then(data => setPromptText(data.prompt))
-      .catch(console.error);
-
     generateReply(replyTone, bug);
   }, [bug, replyTone]);
+
+  useEffect(() => {
+    if (!bug) return;
+    setLoadingPrompt(true);
+    fetch(`/api/bugs/${bug.id}/cursor-prompt?skill=${selectedSkillId}`)
+      .then(res => res.json())
+      .then(data => {
+        setPromptData(data);
+        setLoadingPrompt(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoadingPrompt(false);
+      });
+  }, [bug, selectedSkillId]);
 
   const generateReply = (tone, currentBug) => {
     if (!currentBug) return;
@@ -65,8 +86,19 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
 
   if (!bug) return null;
 
+  const currentDisplayPrompt = useMemo(() => {
+    if (!promptData) return "Generating Claude Skill prompt...";
+    if (promptFormat === 'cli') return promptData.cliCommand;
+    if (promptFormat === 'minimal') return promptData.minimalPrompt;
+    return promptData.prompt;
+  }, [promptData, promptFormat]);
+
+  const activeSkill = useMemo(() => {
+    return CLAUDE_SKILLS.find(s => s.id === selectedSkillId) || CLAUDE_SKILLS[0];
+  }, [selectedSkillId]);
+
   const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(promptText);
+    navigator.clipboard.writeText(currentDisplayPrompt);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -176,8 +208,11 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
                 : 'border-transparent text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
             }`}
           >
-            <Terminal size={13} strokeWidth={1.5} />
-            <span>Developer prompt</span>
+            <Sparkles size={13} className="text-accent" />
+            <span>Claude & Cursor</span>
+            <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-accent/10 text-accent font-normal">
+              skills
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('reply')}
@@ -286,26 +321,119 @@ export default function VerbatimProofDrawer({ bug, onClose, onUpdateStatus, allB
             </div>
           )}
 
-          {/* TAB 2: PROMPT GENERATOR */}
+          {/* TAB 2: CLAUDE SKILLS & CURSOR DISPATCHER */}
           {activeTab === 'prompt' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark">Prompt generator</h3>
-                  <p className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark">Copy directly into Cursor Composer or Claude Code</p>
+            <div className="space-y-4">
+              
+              {/* Skill recommendation card */}
+              <div className="surface-inset p-3 rounded-xl border border-surface-border-light dark:border-surface-border-dark space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-accent font-medium font-mono">
+                    <Sparkles size={13} />
+                    <span>Claude Skill: {activeSkill.name}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark">
+                    {activeSkill.command}
+                  </span>
                 </div>
-                <button
-                  onClick={handleCopyPrompt}
-                  className="h-7 px-2.5 bg-ink-primary-light dark:bg-ink-primary-dark text-canvas-light dark:text-canvas-dark rounded-md text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90"
-                >
-                  {copied ? <Check size={12} strokeWidth={2} /> : <Copy size={12} strokeWidth={1.5} />}
-                  <span>{copied ? "Copied" : "Copy prompt"}</span>
-                </button>
+                <p className="text-[11px] text-ink-secondary-light dark:text-ink-secondary-dark font-mono leading-relaxed">
+                  {promptData?.analysis?.reasoning || activeSkill.description}
+                </p>
               </div>
 
-              <pre className="p-3.5 bg-canvas-dark text-ink-muted-dark border border-surface-border-dark rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[420px]">
-                {promptText || "Generating prompt..."}
-              </pre>
+              {/* Skill Switcher Pills */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-medium text-ink-muted-light dark:text-ink-muted-dark block">
+                  Select Claude Code Persona:
+                </span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {CLAUDE_SKILLS.slice(0, 5).map(sk => {
+                    const isSelected = selectedSkillId === sk.id;
+                    return (
+                      <button
+                        key={sk.id}
+                        onClick={() => setSelectedSkillId(sk.id)}
+                        className={`h-6 px-2 rounded-md text-[11px] font-mono transition-colors ${
+                          isSelected
+                            ? 'bg-ink-primary-light dark:bg-ink-primary-dark text-canvas-light dark:text-canvas-dark font-medium'
+                            : 'surface-card text-ink-muted-light dark:text-ink-muted-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark'
+                        }`}
+                      >
+                        {sk.name.split(' ')[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Format selector + Copy Action */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-0.5 bg-surface-inset-light dark:bg-surface-inset-dark p-0.5 rounded-lg border border-surface-border-light dark:border-surface-border-dark text-[11px]">
+                    <button
+                      onClick={() => setPromptFormat('cli')}
+                      className={`h-5 px-2 rounded transition-colors ${
+                        promptFormat === 'cli'
+                          ? 'bg-canvas-light dark:bg-surface-raised-dark text-ink-primary-light dark:text-ink-primary-dark font-medium shadow-xs'
+                          : 'text-ink-muted-light dark:text-ink-muted-dark'
+                      }`}
+                    >
+                      Claude CLI
+                    </button>
+                    <button
+                      onClick={() => setPromptFormat('prompt')}
+                      className={`h-5 px-2 rounded transition-colors ${
+                        promptFormat === 'prompt'
+                          ? 'bg-canvas-light dark:bg-surface-raised-dark text-ink-primary-light dark:text-ink-primary-dark font-medium shadow-xs'
+                          : 'text-ink-muted-light dark:text-ink-muted-dark'
+                      }`}
+                    >
+                      Full Prompt
+                    </button>
+                    <button
+                      onClick={() => setPromptFormat('minimal')}
+                      className={`h-5 px-2 rounded transition-colors ${
+                        promptFormat === 'minimal'
+                          ? 'bg-canvas-light dark:bg-surface-raised-dark text-ink-primary-light dark:text-ink-primary-dark font-medium shadow-xs'
+                          : 'text-ink-muted-light dark:text-ink-muted-dark'
+                      }`}
+                    >
+                      Minimal
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleCopyPrompt}
+                    className="h-6 px-2.5 bg-ink-primary-light dark:bg-ink-primary-dark text-canvas-light dark:text-canvas-dark rounded-md text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90"
+                  >
+                    {copied ? <Check size={11} strokeWidth={2} /> : <Copy size={11} strokeWidth={1.5} />}
+                    <span>{copied ? "Copied" : "Copy command"}</span>
+                  </button>
+                </div>
+
+                {/* Terminal preview container */}
+                <div className="rounded-lg border border-surface-border-dark bg-canvas-dark p-3.5 space-y-2">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-ink-muted-dark pb-1.5 border-b border-surface-border-dark/60">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-red-500/80" />
+                      <span className="w-2 h-2 rounded-full bg-amber-500/80" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-500/80" />
+                      <span className="pl-1">claude-code ({activeSkill.command})</span>
+                    </div>
+                    <span>{promptFormat.toUpperCase()}</span>
+                  </div>
+
+                  <pre className="text-xs font-mono text-ink-muted-dark overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[340px] select-all">
+                    {loadingPrompt ? "Generating Claude Skill prompt..." : currentDisplayPrompt}
+                  </pre>
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] font-mono text-ink-muted-light dark:text-ink-muted-dark pt-0.5">
+                  <span>Powered by <a href="https://github.com/jeffallan/claude-skills" target="_blank" rel="noreferrer" className="text-accent hover:underline">jeffallan/claude-skills</a></span>
+                  <span>CLI execution: <code className="text-accent">claude "..."</code></span>
+                </div>
+              </div>
+
             </div>
           )}
 

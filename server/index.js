@@ -3,6 +3,12 @@ import cors from 'cors';
 import { db } from './db.js';
 import { scrapeSourceReviews, detectPlatform } from './scrapers/engine.js';
 import { triageAndDeduplicate, generateCursorPrompt, generateStoreReply } from './aiTriage.js';
+import { 
+  CLAUDE_SKILLS_REGISTRY, 
+  CLAUDE_WORKFLOWS, 
+  analyzeBugForClaudeSkills, 
+  generateClaudeSkillPrompt 
+} from './claudeSkills.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -146,10 +152,25 @@ app.post('/api/sources/:id/scrape', async (req, res) => {
   }
 });
 
-// 3. Bugs (Dual-List: Internal + User Reported)
+// 3. Bugs (Dual-List: Internal + User Reported with Claude Skills Enrichment)
 app.get('/api/bugs', (req, res) => {
   const { projectId } = req.query;
-  const allBugs = db.getBugs(projectId);
+  const rawBugs = db.getBugs(projectId);
+
+  // Enrich each bug with Claude Skills routing
+  const allBugs = rawBugs.map(bug => {
+    const reviews = db.getReviewsForBug(bug.id);
+    const analysis = analyzeBugForClaudeSkills(bug, reviews);
+    return {
+      ...bug,
+      claudeSkill: analysis.primarySkill,
+      claudeAnalysis: {
+        reasoning: analysis.reasoning,
+        workflow: analysis.workflow,
+        platformSpecialist: analysis.platformSpecialist
+      }
+    };
+  });
 
   const internalBugs = allBugs.filter(b => b.originType === 'INTERNAL');
   const userBugs = allBugs.filter(b => b.originType === 'USER_REPORTED');
@@ -214,15 +235,51 @@ app.get('/api/bugs/:id/reviews', (req, res) => {
   res.json(reviews);
 });
 
-// Generate Prompt for Cursor / Claude
+// Claude Skills Ecosystem & Workflows Reference (Powered by https://github.com/jeffallan/claude-skills)
+app.get('/api/claude-skills', (req, res) => {
+  res.json({
+    repo: "https://github.com/jeffallan/claude-skills",
+    docsUrl: "https://jeffallan.github.io/claude-skills",
+    installCommands: [
+      "/plugin marketplace add jeffallan/claude-skills",
+      "/plugin install fullstack-dev-skills@fullstack-dev-skills"
+    ],
+    skills: CLAUDE_SKILLS_REGISTRY,
+    workflows: CLAUDE_WORKFLOWS
+  });
+});
+
+// Claude Skills Dispatch Details for Specific Bug
+app.get('/api/bugs/:id/claude-skills', (req, res) => {
+  const bugs = db.getBugs();
+  const bug = bugs.find(b => b.id === req.params.id);
+  if (!bug) return res.status(404).json({ error: "Bug not found" });
+
+  const reviews = db.getReviewsForBug(bug.id);
+  const selectedSkill = req.query.skill || null;
+  const data = generateClaudeSkillPrompt(bug, reviews, selectedSkill);
+
+  res.json(data);
+});
+
+// Generate Prompt for Cursor / Claude (Context Engineering & Progressive Disclosure)
 app.get('/api/bugs/:id/cursor-prompt', (req, res) => {
   const bugs = db.getBugs();
   const bug = bugs.find(b => b.id === req.params.id);
   if (!bug) return res.status(404).json({ error: "Bug not found" });
 
   const reviews = db.getReviewsForBug(bug.id);
-  const prompt = generateCursorPrompt(bug, reviews);
-  res.json({ prompt });
+  const selectedSkill = req.query.skill || null;
+  const claudeData = generateClaudeSkillPrompt(bug, reviews, selectedSkill);
+
+  res.json({ 
+    prompt: claudeData.fullPrompt,
+    cliCommand: claudeData.claudeCliCommand,
+    minimalPrompt: claudeData.minimalPrompt,
+    skill: claudeData.skill,
+    analysis: claudeData.analysis,
+    installCommand: claudeData.installCommand
+  });
 });
 
 // Generate Store Reply Draft

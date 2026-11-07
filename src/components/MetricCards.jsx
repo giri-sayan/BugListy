@@ -23,10 +23,11 @@ export default function MetricCards({ analytics }) {
       highlight: false
     },
     {
-      label: "Resolved issues",
-      value: analytics?.resolvedCount ?? 1,
-      detail: "Shipped in latest releases",
-      highlight: false
+      label: "Claude Skills routed",
+      value: "100%",
+      detail: "67 specialized skills & CLI ready",
+      highlight: true,
+      highlightColor: "text-accent"
     }
   ];
 

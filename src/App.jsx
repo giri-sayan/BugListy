@@ -3,7 +3,7 @@ import {
   Bug, Plus, Link2, RefreshCw, CheckCircle2, AlertTriangle, 
   Clock, ShieldAlert, Cpu, Terminal, ExternalLink, ChevronRight, Filter,
   ArrowRight, Search, Check, Layers, Copy, LayoutGrid, Kanban, Radio, BarChart3,
-  Sun, Moon, MessageSquarePlus, Download, ThumbsUp, Globe
+  Sun, Moon, MessageSquarePlus, Download, ThumbsUp, Globe, Sparkles
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import MetricCards from './components/MetricCards';
@@ -15,6 +15,8 @@ import AddSourceModal from './components/AddSourceModal';
 import AddBugModal from './components/AddBugModal';
 import FeedbackWidgetModal from './components/FeedbackWidgetModal';
 import PublicRoadmapView from './components/PublicRoadmapView';
+import ClaudeSkillsStudioView from './components/ClaudeSkillsStudioView';
+import { getRecommendedSkillForBug } from './data/claudeSkillsData';
 
 export default function App() {
   const [internalBugs, setInternalBugs] = useState([]);
@@ -136,13 +138,21 @@ export default function App() {
     }
   };
 
-  // Quick prompt copy
+  // Quick prompt copy (CLI / Cursor)
   const handleQuickCopyPrompt = async (e, bug) => {
     e.stopPropagation();
     try {
       const res = await fetch(`/api/bugs/${bug.id}/cursor-prompt`);
       const data = await res.json();
-      navigator.clipboard.writeText(data.prompt);
+      const textToCopy = data.cliCommand || data.prompt;
+      navigator.clipboard.writeText(textToCopy);
+      setNotification({
+        message: `Copied Claude CLI command for "${bug.title}"`,
+        reviewText: textToCopy,
+        author: data.skill?.name || "Claude Skills",
+        platform: "CLI"
+      });
+      setTimeout(() => setNotification(null), 4000);
     } catch (err) {
       console.error(err);
     }
@@ -238,6 +248,7 @@ export default function App() {
 
   const viewTitles = {
     dual: 'Dual backlog',
+    skills: 'Claude Skills studio',
     kanban: 'Kanban workflow',
     stream: 'Review stream',
     telemetry: 'Store telemetry',
@@ -279,8 +290,22 @@ export default function App() {
           {/* Quick Header Actions */}
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setCurrentView('skills')}
+              className={`h-8 px-2.5 rounded-lg text-xs font-mono font-medium flex items-center gap-1.5 transition-colors duration-140 ${
+                currentView === 'skills'
+                  ? 'bg-accent/20 text-accent border border-accent/40 shadow-xs'
+                  : 'surface-raised text-ink-secondary-light dark:text-ink-secondary-dark hover:text-accent'
+              }`}
+              title="Open Claude Skills Studio (jeffallan/claude-skills)"
+            >
+              <Sparkles size={12} className="text-accent" />
+              <span>Claude Skills</span>
+              <span className="text-[10px] px-1 py-0.2 rounded bg-accent/15 text-accent font-semibold">67</span>
+            </button>
+
+            <button
               onClick={() => setIsFeedbackOpen(true)}
-              className="h-8 px-2.5 rounded-lg text-xs font-medium surface-raised text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark flex items-center gap-1.5 transition-colors duration-140"
+              className="h-8 px-2.5 rounded-lg text-xs font-medium surface-raised text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-light flex items-center gap-1.5 transition-colors duration-140"
               title="Submit feedback on BugListy"
             >
               <MessageSquarePlus size={13} strokeWidth={1.5} />
@@ -492,6 +517,15 @@ export default function App() {
                                     {t}
                                   </span>
                                 ))}
+                                {(() => {
+                                  const rec = getRecommendedSkillForBug(bug);
+                                  return (
+                                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border flex items-center gap-1 ${rec.badgeColor || 'surface-raised'}`}>
+                                      <Sparkles size={9} className="text-accent" />
+                                      <span>{rec.name}</span>
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark group-hover:text-accent transition-colors duration-140 leading-snug">
                                 {bug.title}
@@ -503,6 +537,21 @@ export default function App() {
                           <p className="text-[11px] text-ink-secondary-light dark:text-ink-secondary-dark line-clamp-2 surface-inset p-2.5 rounded-lg leading-relaxed">
                             {bug.technicalSummary}
                           </p>
+
+                          {/* Footer */}
+                          <div className="flex items-center justify-between text-[11px] pt-1">
+                            <span className="text-ink-muted-light dark:text-ink-muted-dark font-mono text-[10px]">
+                              Internal defect
+                            </span>
+                            <button
+                              onClick={(e) => handleQuickCopyPrompt(e, bug)}
+                              className="h-6 px-2 rounded surface-raised text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark transition-colors duration-140 flex items-center gap-1 text-[10px] font-mono"
+                              title="Copy Claude Code CLI command"
+                            >
+                              <Terminal size={10} strokeWidth={1.5} />
+                              <span>Claude CLI</span>
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -575,6 +624,16 @@ export default function App() {
                                     {bug.actionabilityScore}/5
                                   </span>
                                 )}
+
+                                {(() => {
+                                  const rec = getRecommendedSkillForBug(bug);
+                                  return (
+                                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border flex items-center gap-1 ${rec.badgeColor || 'surface-raised'}`}>
+                                      <Sparkles size={9} className="text-accent" />
+                                      <span>{rec.name}</span>
+                                    </span>
+                                  );
+                                })()}
                               </div>
 
                               <h3 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark group-hover:text-accent transition-colors duration-140 leading-snug">
@@ -599,10 +658,10 @@ export default function App() {
                               <button
                                 onClick={(e) => handleQuickCopyPrompt(e, bug)}
                                 className="h-6 px-2 rounded surface-raised text-ink-secondary-light dark:text-ink-secondary-dark hover:text-ink-primary-light dark:hover:text-ink-primary-dark transition-colors duration-140 flex items-center gap-1 text-[10px] font-mono"
-                                title="Copy prompt for Cursor / Claude"
+                                title="Copy Claude Code CLI command"
                               >
                                 <Terminal size={10} strokeWidth={1.5} />
-                                <span>Prompt</span>
+                                <span>Claude CLI</span>
                               </button>
                               <span className="text-[11px] text-ink-muted-light dark:text-ink-muted-dark group-hover:text-accent transition-colors duration-140">
                                 Citations →
@@ -619,7 +678,15 @@ export default function App() {
             </div>
           )}
 
-          {/* VIEW 2: KANBAN BOARD */}
+          {/* VIEW 2: CLAUDE SKILLS STUDIO */}
+          {currentView === 'skills' && (
+            <ClaudeSkillsStudioView
+              bugs={[...userBugs, ...internalBugs]}
+              onSelectBug={setSelectedBug}
+            />
+          )}
+
+          {/* VIEW 3: KANBAN BOARD */}
           {currentView === 'kanban' && (
             <KanbanBoard
               bugs={allFilteredBugs}

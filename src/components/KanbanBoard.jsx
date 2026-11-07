@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles, Terminal } from 'lucide-react';
+import { getRecommendedSkillForBug } from '../data/claudeSkillsData';
 
 export default function KanbanBoard({ bugs = [], onSelectBug, onUpdateStatus, onUpvote }) {
   const columns = [
@@ -85,6 +86,19 @@ export default function KanbanBoard({ bugs = [], onSelectBug, onUpdateStatus, on
                       <h4 className="text-xs font-medium text-ink-primary-light dark:text-ink-primary-dark group-hover:text-accent transition-colors duration-140 leading-snug">
                         {bug.title}
                       </h4>
+
+                      {/* Claude Skill Persona Pill */}
+                      {(() => {
+                        const rec = getRecommendedSkillForBug(bug);
+                        return (
+                          <div className="flex items-center gap-1.5 pt-0.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border flex items-center gap-1 ${rec.badgeColor || 'surface-card'}`}>
+                              <Sparkles size={10} className="text-accent" />
+                              <span>{rec.name}</span>
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       {/* Details row */}
                       {isUser && bug.reportCount && (
